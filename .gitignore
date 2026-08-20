@@ -6,6 +6,7 @@ dist/
 .next/
 out/
 coverage/
+backend/src/generated/prisma/
 
 # Environment files (examples are safe to version)
 .env
@@ -29,4 +30,3 @@ Thumbs.db
 
 # Platform-specific
 .vercel/
-

@@ -1,6 +1,6 @@
 # Modelo de datos propuesto
 
-> Estado: diseño para revisión. Este documento no es una migración ni crea recursos en Supabase. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
+> Estado: diseño general para revisión. `profiles`, `roles` y `user_roles` ya fueron desplegados mediante la primera migración Prisma y los cuatro roles base fueron sembrados. Supabase Auth todavía no está implementado y no existen perfiles automáticos. El resto del documento no es una migración ni crea recursos en Supabase. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
 
 ## Criterios generales
 

@@ -1,11 +1,31 @@
 # Base de datos
 
-Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. En esta etapa no existen tablas remotas, migraciones SQL ejecutables ni integración desde NestJS.
+Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. La infraestructura inicial de identidad ya está desplegada; los módulos clínicos continúan únicamente documentados.
+
+## Conectividad implementada
+
+```text
+NestJS -> Prisma ORM -> adaptador PostgreSQL -> Supabase PostgreSQL
+```
+
+El backend dispone de un cliente Prisma compartido y un `GET /health` que ejecuta únicamente `SELECT 1`. La migración versionada de `profiles`, `roles` y `user_roles` fue aplicada correctamente con `prisma migrate deploy`. Nunca se utilizó `db push` y todavía no existen modelos clínicos.
+
+## Identidad y Supabase Auth
+
+`profiles.id` no genera un UUID propio: recibirá exactamente el UUID de `auth.users.id`. Prisma administra `public.profiles`, pero no modela ni modifica `auth.users`. La migración versionada añade una FK SQL explícita `profiles(id) -> auth.users(id) ON DELETE CASCADE`; esta relación queda fuera del grafo de Prisma porque el schema `auth` pertenece a Supabase.
+
+Los roles permanecen como tabla catálogo y se relacionan N:M con perfiles mediante `user_roles`, cuya PK es (`profile_id`, `role_id`). El seed idempotente fue ejecutado y existen `ADMIN`, `DOCTOR`, `NURSE` y `TECHNICIAN`.
+
+Supabase Auth todavía no está implementado: no hay login, validación JWT, guards, usuarios de aplicación ni creación automática de perfiles. Las tablas `profiles` y `user_roles` permanecen vacías hasta esa futura etapa.
+
+PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` también tiene default de PostgreSQL y Prisma lo actualiza mediante `@updatedAt` cuando una escritura pasa por Prisma.
+
+`DATABASE_URL` se usa tanto en ejecución como en la configuración CLI inicial. La URL actual corresponde a una conexión directa, apropiada para un backend persistente cuando el entorno alcanza IPv6 (o dispone de IPv4). Si en el futuro se usa un pooler para la aplicación, deberá evaluarse una URL directa separada para migraciones; no se inventará ni cambiará ninguna URL automáticamente.
 
 ## Contenido
 
 - [`schema.md`](./schema.md): modelo lógico propuesto, relaciones, restricciones e índices.
-- [`migrations/`](./migrations/): ubicación reservada para migraciones aprobadas en una etapa posterior.
+- Las migraciones ejecutables y versionadas viven en `backend/prisma/migrations/`; [`migrations/`](./migrations/) permanece reservado para documentación o SQL complementario aprobado.
 
 ## Convenciones propuestas
 
