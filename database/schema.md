@@ -21,7 +21,7 @@ Los siguientes valores son candidatos a enums PostgreSQL o restricciones `CHECK`
 | `patient_status` | `ACTIVE`, `INACTIVE` |
 | `patient_sex` | `MALE`, `FEMALE`, `UNSPECIFIED` |
 | `incubator_status` | `AVAILABLE`, `IN_USE`, `MAINTENANCE`, `OUT_OF_SERVICE` |
-| `admission_status` | `ACTIVE`, `DISCHARGED`, `CANCELLED` |
+| `admission_status` | `ACTIVE`, `DISCHARGED`, `TRANSFERRED`, `CANCELLED` |
 | `device_type` | `ESP32`, `ESP8266` |
 | `device_status` | `PROVISIONING`, `ONLINE`, `OFFLINE`, `MAINTENANCE`, `RETIRED` |
 | `sensor_type` | `DHT11`, `DHT22`, `MAX30100`, `MAX30205`, `OTHER` |
@@ -148,10 +148,13 @@ PK compuesta (`patient_id`, `guardian_id`). Paciente usa `ON DELETE CASCADE`; tu
 | `admitted_at` | `timestamptz` | inicio del intervalo |
 | `discharged_at` | `timestamptz` | nullable mientras esté activo; mayor que `admitted_at` |
 | `status` | `admission_status` | default `ACTIVE` |
+| `notes` | `text` | nullable; observaciones administrativas, no historia clínica libre |
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-Ambas FK usan `ON DELETE RESTRICT`. Índices (`patient_id`, `admitted_at DESC`) e (`incubator_id`, `admitted_at DESC`). Un índice único parcial impide más de un ingreso `ACTIVE` por paciente y otro impide más de uno por incubadora. Para evitar también solapamientos históricos se propone una restricción `EXCLUDE USING gist` sobre rangos `tstzrange(admitted_at, discharged_at, '[)')`, tanto por paciente como por incubadora; requiere validar cancelaciones y la extensión `btree_gist` antes de escribir SQL.
+Ambas FK usan `ON DELETE RESTRICT`. Índices (`patient_id`, `admitted_at DESC`) e (`incubator_id`, `admitted_at DESC`). Un índice único parcial impide más de un ingreso `ACTIVE` por paciente y otro impide más de uno por incubadora. Checks exigen que la salida no preceda al ingreso y que sólo los estados finales tengan `discharged_at`. No se instala `btree_gist` ni se impiden todavía todos los solapamientos históricos: los índices parciales cubren el flujo operativo inicial sin añadir complejidad prematura.
+
+Crear un ingreso y cambiar la incubadora de `AVAILABLE` a `IN_USE` ocurre en una transacción. El cierre devuelve la incubadora a `AVAILABLE`. `MAINTENANCE` y `OUT_OF_SERVICE` no admiten pacientes. `Patient.status` no cambia: sigue siendo un estado administrativo independiente. Una transferencia se representa cerrando el ingreso con `TRANSFERRED` y creando después otro ingreso.
 
 ### `devices`
 

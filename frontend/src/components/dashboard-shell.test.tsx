@@ -34,6 +34,7 @@ describe("Dashboard", () => {
     render(<DashboardShell user={{ ...user, roles: ["TECHNICIAN"] }} backendConnected databaseConnected />);
     expect(screen.queryByRole("link", { name: "Pacientes" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tutores" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Ingresos" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Incubadoras" }).length).toBeGreaterThan(0);
   });
 

@@ -1,6 +1,6 @@
 # Base de datos
 
-Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad, pacientes, tutores, relaciones paciente–tutor e incubadoras están desplegados mediante migraciones aditivas versionadas.
+Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad, pacientes, tutores, incubadoras e historial de ingresos están desplegados mediante migraciones aditivas versionadas.
 
 ## Conectividad implementada
 
@@ -26,6 +26,7 @@ PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` tambié
 
 - [`schema.md`](./schema.md): modelo lógico propuesto, relaciones, restricciones e índices.
 - Las migraciones ejecutables y versionadas viven en `backend/prisma/migrations/`. La migración de incubadoras crea únicamente `incubator_status`, `incubators` y sus índices/constraints; no crea datos ni relaciona pacientes.
+- La migración de Admissions crea `admission_status`, `admissions`, FKs restrictivas, checks temporales e índices únicos parciales para un solo ingreso activo por paciente e incubadora.
 
 ## Convenciones propuestas
 

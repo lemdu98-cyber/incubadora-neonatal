@@ -1,0 +1,1 @@
+import Link from'next/link';export default function NotFound(){return <main className="grid min-h-screen place-items-center"><section><h1 className="text-2xl font-bold">Ingreso no encontrado.</h1><Link href="/admissions">Volver a ingresos</Link></section></main>}

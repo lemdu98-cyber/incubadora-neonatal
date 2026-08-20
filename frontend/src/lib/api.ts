@@ -2,6 +2,7 @@ import { getPublicEnv } from "@/lib/env";
 import type { BloodType, PatientSex, PatientStatus } from "@/lib/patient-options";
 import type { GuardianRelationship } from "@/lib/guardian-options";
 import type { IncubatorStatus } from "@/lib/incubator-options";
+import type { AdmissionStatus } from "@/lib/admission-options";
 
 export type CurrentUser = {
   id: string;
@@ -47,6 +48,9 @@ export type Incubator = {
 export type CreateIncubatorInput = Pick<Incubator, "code" | "name" | "location"> & {
   serialNumber?: string; manufacturer?: string; model?: string; notes?: string;
 };
+export type Admission = { id:string; patientId:string; incubatorId:string; admittedAt:string; dischargedAt:string|null; status:AdmissionStatus; notes:string|null; createdAt?:string; updatedAt?:string; patient:{id:string;medicalRecordNumber:string;firstName:string;lastName:string}; incubator:{id:string;code:string;name:string;location:string;status:IncubatorStatus} };
+export type CreateAdmissionInput = { patientId:string; incubatorId:string; admittedAt:string; notes?:string };
+export type DischargeAdmissionInput = { dischargedAt:string; status:Exclude<AdmissionStatus,"ACTIVE"> };
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -107,6 +111,14 @@ export function unlinkGuardian(patientId:string,guardianId:string,accessToken:st
 export function getIncubators(accessToken: string) { return protectedRequest<Incubator[]>("/incubators", accessToken); }
 export function getIncubator(id: string, accessToken: string) { return protectedRequest<Incubator>(`/incubators/${encodeURIComponent(id)}`, accessToken); }
 export function createIncubator(data: CreateIncubatorInput, accessToken: string) { return protectedRequest<Incubator>("/incubators", accessToken, { method: "POST", body: JSON.stringify(data) }); }
+export function getAdmissions(accessToken:string,filters?:{status?:AdmissionStatus;patientId?:string;incubatorId?:string}){const query=new URLSearchParams(Object.entries(filters??{}).filter((entry):entry is [string,string]=>Boolean(entry[1])));return protectedRequest<Admission[]>(`/admissions${query.size?`?${query}`:""}`,accessToken)}
+export function getAdmission(id:string,accessToken:string){return protectedRequest<Admission>(`/admissions/${encodeURIComponent(id)}`,accessToken)}
+export function createAdmission(data:CreateAdmissionInput,accessToken:string){return protectedRequest<Admission>('/admissions',accessToken,{method:'POST',body:JSON.stringify(data)})}
+export function dischargeAdmission(id:string,data:DischargeAdmissionInput,accessToken:string){return protectedRequest<Admission>(`/admissions/${encodeURIComponent(id)}/discharge`,accessToken,{method:'POST',body:JSON.stringify(data)})}
+export function getPatientAdmissions(id:string,accessToken:string){return protectedRequest<Admission[]>(`/patients/${encodeURIComponent(id)}/admissions`,accessToken)}
+export function getPatientActiveAdmission(id:string,accessToken:string){return protectedRequest<Admission|null>(`/patients/${encodeURIComponent(id)}/active-admission`,accessToken)}
+export function getIncubatorAdmissions(id:string,accessToken:string){return protectedRequest<Admission[]>(`/incubators/${encodeURIComponent(id)}/admissions`,accessToken)}
+export function getIncubatorActiveAdmission(id:string,accessToken:string){return protectedRequest<Admission|null>(`/incubators/${encodeURIComponent(id)}/active-admission`,accessToken)}
 
 export async function getHealth() {
   try {

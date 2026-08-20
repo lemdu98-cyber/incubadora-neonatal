@@ -67,6 +67,15 @@ enum IncubatorStatus {
   @@map("incubator_status")
 }
 
+enum AdmissionStatus {
+  ACTIVE
+  DISCHARGED
+  TRANSFERRED
+  CANCELLED
+
+  @@map("admission_status")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -119,6 +128,7 @@ model Patient {
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   guardians           PatientGuardian[]
+  admissions          Admission[]
 
   @@index([createdAt(sort: Desc)])
   @@map("patients")
@@ -167,8 +177,29 @@ model Incubator {
   notes        String?         @db.Text
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  admissions   Admission[]
 
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("incubators")
+}
+
+model Admission {
+  id           String          @id @default(uuid()) @db.Uuid
+  patientId    String          @map("patient_id") @db.Uuid
+  incubatorId  String          @map("incubator_id") @db.Uuid
+  admittedAt   DateTime        @map("admitted_at") @db.Timestamptz(6)
+  dischargedAt DateTime?       @map("discharged_at") @db.Timestamptz(6)
+  status       AdmissionStatus @default(ACTIVE)
+  notes        String?         @db.Text
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  patient      Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  incubator    Incubator       @relation(fields: [incubatorId], references: [id], onDelete: Restrict)
+
+  @@index([patientId, admittedAt(sort: Desc)])
+  @@index([incubatorId, admittedAt(sort: Desc)])
+  @@index([status])
+  @@index([admittedAt(sort: Desc)])
+  @@map("admissions")
 }

@@ -14,6 +14,7 @@ import { UsersService } from './../src/users/users.service';
 import { PatientsService } from './../src/patients/patients.service';
 import { GuardiansService } from './../src/guardians/guardians.service';
 import { IncubatorsService } from './../src/incubators/incubators.service';
+import { AdmissionsService } from './../src/admissions/admissions.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -59,6 +60,29 @@ describe('AppController (e2e)', () => {
     gestationalAgeDays: 4,
     bloodType: 'O_POSITIVE',
     status: 'ACTIVE',
+  };
+  const admissionId = '00000000-0000-4000-8000-000000000010';
+  const admission = {
+    id: admissionId,
+    patientId,
+    incubatorId,
+    admittedAt: '2026-08-20T18:30:00.000Z',
+    dischargedAt: null,
+    status: 'ACTIVE',
+    notes: null,
+    patient: {
+      id: patientId,
+      medicalRecordNumber: patient.medicalRecordNumber,
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+    },
+    incubator: {
+      id: incubatorId,
+      code: incubator.code,
+      name: incubator.name,
+      location: incubator.location,
+      status: 'IN_USE',
+    },
   };
   const createdUser = {
     id: createdId,
@@ -194,6 +218,25 @@ describe('AppController (e2e)', () => {
             ? Promise.resolve(incubator)
             : Promise.reject(new NotFoundException('Incubator not found')),
         ),
+      })
+      .overrideProvider(AdmissionsService)
+      .useValue({
+        create: jest.fn().mockResolvedValue(admission),
+        findAll: jest.fn().mockResolvedValue([admission]),
+        findOne: jest.fn((id: string) =>
+          id === admissionId
+            ? Promise.resolve(admission)
+            : Promise.reject(new NotFoundException('Admission not found')),
+        ),
+        findForPatient: jest.fn().mockResolvedValue([admission]),
+        findForIncubator: jest.fn().mockResolvedValue([admission]),
+        activeForPatient: jest.fn().mockResolvedValue(admission),
+        activeForIncubator: jest.fn().mockResolvedValue(admission),
+        discharge: jest.fn().mockResolvedValue({
+          ...admission,
+          status: 'DISCHARGED',
+          dischargedAt: '2026-08-20T22:15:00.000Z',
+        }),
       })
       .compile();
 
@@ -537,6 +580,96 @@ describe('AppController (e2e)', () => {
       .set('Authorization', 'Bearer nurse-token')
       .expect(200)
       .expect(incubator));
+
+  const admissionInput = {
+    patientId,
+    incubatorId,
+    admittedAt: '2026-08-20T14:30:00-04:00',
+    notes: 'Ingreso inicial',
+  };
+  it('POST /admissions requires JWT', () =>
+    request(app.getHttpServer())
+      .post('/admissions')
+      .send(admissionInput)
+      .expect(401));
+  it('POST /admissions rejects TECHNICIAN', () =>
+    request(app.getHttpServer())
+      .post('/admissions')
+      .set('Authorization', 'Bearer technician-token')
+      .send(admissionInput)
+      .expect(403));
+  it.each(['admin-token', 'doctor-token', 'nurse-token'])(
+    'POST /admissions allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/admissions')
+        .set('Authorization', `Bearer ${token}`)
+        .send(admissionInput)
+        .expect(201),
+  );
+  it('POST /admissions validates DTO and forbids status', () =>
+    request(app.getHttpServer())
+      .post('/admissions')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ ...admissionInput, status: 'ACTIVE' })
+      .expect(400));
+  it('GET /admissions lists history', () =>
+    request(app.getHttpServer())
+      .get('/admissions?status=ACTIVE')
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect([admission]));
+  it('GET /admissions rejects TECHNICIAN', () =>
+    request(app.getHttpServer())
+      .get('/admissions')
+      .set('Authorization', 'Bearer technician-token')
+      .expect(403));
+  it('GET /admissions/:id validates UUID', () =>
+    request(app.getHttpServer())
+      .get('/admissions/bad')
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(400));
+  it('GET /admissions/:id returns 404', () =>
+    request(app.getHttpServer())
+      .get('/admissions/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(404));
+  it('GET patient admission history', () =>
+    request(app.getHttpServer())
+      .get(`/patients/${patientId}/admissions`)
+      .set('Authorization', 'Bearer admin-token')
+      .expect(200)
+      .expect([admission]));
+  it('GET incubator admission history', () =>
+    request(app.getHttpServer())
+      .get(`/incubators/${incubatorId}/admissions`)
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect([admission]));
+  it('GET patient active admission', () =>
+    request(app.getHttpServer())
+      .get(`/patients/${patientId}/active-admission`)
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(200)
+      .expect(admission));
+  it('GET incubator active admission', () =>
+    request(app.getHttpServer())
+      .get(`/incubators/${incubatorId}/active-admission`)
+      .set('Authorization', 'Bearer admin-token')
+      .expect(200)
+      .expect(admission));
+  it('POST discharge rejects ACTIVE final status', () =>
+    request(app.getHttpServer())
+      .post(`/admissions/${admissionId}/discharge`)
+      .set('Authorization', 'Bearer admin-token')
+      .send({ dischargedAt: '2026-08-20T18:15:00-04:00', status: 'ACTIVE' })
+      .expect(400));
+  it('POST discharge closes admission', () =>
+    request(app.getHttpServer())
+      .post(`/admissions/${admissionId}/discharge`)
+      .set('Authorization', 'Bearer doctor-token')
+      .send({ dischargedAt: '2026-08-20T18:15:00-04:00', status: 'DISCHARGED' })
+      .expect(201));
 
   afterEach(async () => {
     await app.close();
