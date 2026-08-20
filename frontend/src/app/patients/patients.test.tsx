@@ -1,0 +1,20 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api";
+import { PatientDetails } from "./[id]/page";
+import { PatientForm } from "./new/patient-form";
+import { PatientEmpty, PatientError, PatientList } from "./page";
+const createPatient=vi.fn(); const push=vi.fn();
+vi.mock("@/lib/api",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/api")>(),createPatient:(...args:unknown[])=>createPatient(...args)}));
+vi.mock("@/lib/supabase/client",()=>({createClient:()=>({auth:{getSession:vi.fn().mockResolvedValue({data:{session:{access_token:'token'}}}),signOut:vi.fn()}})}));
+vi.mock("next/navigation",()=>({useRouter:()=>({push,replace:vi.fn(),refresh:vi.fn()}),redirect:vi.fn(),notFound:vi.fn()}));
+const patient={id:'00000000-0000-4000-8000-000000000007',medicalRecordNumber:'RN-2026-000001',firstName:'Mateo',lastName:'Perez',birthDate:'2026-08-20T00:00:00.000Z',birthTime:'1970-01-01T03:15:00.000Z',sex:'MALE' as const,birthWeightGrams:2450,gestationalAgeWeeks:36,gestationalAgeDays:4,bloodType:'O_POSITIVE' as const,status:'ACTIVE' as const,createdAt:'2026-08-20T12:00:00Z',updatedAt:'2026-08-20T12:00:00Z'};
+function fill(){for(const [label,value] of [['Número de historia clínica','RN-2026-000001'],['Nombre','Mateo'],['Apellido','Perez'],['Fecha de nacimiento','2026-08-20'],['Peso al nacer (g)','2450'],['Edad gestacional (semanas)','36'],['Edad gestacional (días)','4']])fireEvent.change(screen.getByLabelText(label),{target:{value}});}
+describe('Patients UI',()=>{beforeEach(()=>{vi.clearAllMocks();createPatient.mockResolvedValue(patient);});
+it('renders the new patient form with runtime sex and blood type options',()=>{render(<PatientForm/>);const sex=screen.getByLabelText('Sexo') as HTMLSelectElement;const blood=screen.getByLabelText('Tipo sanguíneo') as HTMLSelectElement;expect(Array.from(sex.options).map(option=>option.value)).toEqual(['MALE','FEMALE','UNSPECIFIED']);expect(Array.from(blood.options).map(option=>option.value)).toEqual(['A_POSITIVE','A_NEGATIVE','B_POSITIVE','B_NEGATIVE','AB_POSITIVE','AB_NEGATIVE','O_POSITIVE','O_NEGATIVE','UNKNOWN']);expect(screen.getByRole('option',{name:'Masculino'})).toBeInTheDocument();expect(screen.getByRole('option',{name:'O+'})).toBeInTheDocument();});
+it('renders list, empty and error states',()=>{const {rerender}=render(<PatientList patients={[patient]}/>);expect(screen.getAllByText('Mateo Perez').length).toBeGreaterThan(0);rerender(<PatientEmpty/>);expect(screen.getByText('No hay pacientes registrados.')).toBeInTheDocument();rerender(<PatientError/>);expect(screen.getByRole('alert')).toBeInTheDocument();});
+it('renders complete detail',()=>{render(<PatientDetails patient={patient}/>);expect(screen.getByText('36 semanas + 4 días')).toBeInTheDocument();expect(screen.getByText('O+')).toBeInTheDocument();});
+it('validates future date',async()=>{render(<PatientForm/>);fill();fireEvent.change(screen.getByLabelText('Fecha de nacimiento'),{target:{value:'2999-01-01'}});fireEvent.submit(screen.getByRole('button',{name:'Registrar paciente'}).closest('form')!);expect(await screen.findByRole('alert')).toHaveTextContent('futuro');});
+it('creates through mocked NestJS API',async()=>{render(<PatientForm/>);fill();fireEvent.click(screen.getByRole('button',{name:'Registrar paciente'}));await waitFor(()=>expect(createPatient).toHaveBeenCalled());expect(push).toHaveBeenCalledWith(`/patients/${patient.id}`);});
+it('maps duplicate record 409',async()=>{createPatient.mockRejectedValue(new ApiError(409));render(<PatientForm/>);fill();fireEvent.click(screen.getByRole('button',{name:'Registrar paciente'}));expect(await screen.findByRole('alert')).toHaveTextContent('Ya existe un paciente');});
+});

@@ -18,6 +18,35 @@ enum ProfileStatus {
   @@map("profile_status")
 }
 
+enum PatientSex {
+  MALE
+  FEMALE
+  UNSPECIFIED
+
+  @@map("patient_sex")
+}
+
+enum BloodType {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  UNKNOWN
+
+  @@map("blood_type")
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("patient_status")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -52,4 +81,24 @@ model UserRole {
   @@id([profileId, roleId])
   @@index([roleId])
   @@map("user_roles")
+}
+
+model Patient {
+  id                   String        @id @default(uuid()) @db.Uuid
+  medicalRecordNumber  String        @unique @map("medical_record_number") @db.VarChar(50)
+  firstName            String        @map("first_name") @db.VarChar(100)
+  lastName             String        @map("last_name") @db.VarChar(100)
+  birthDate            DateTime      @map("birth_date") @db.Date
+  birthTime            DateTime?     @map("birth_time") @db.Time(0)
+  sex                  PatientSex
+  birthWeightGrams     Int           @map("birth_weight_grams")
+  gestationalAgeWeeks  Int           @map("gestational_age_weeks") @db.SmallInt
+  gestationalAgeDays   Int           @map("gestational_age_days") @db.SmallInt
+  bloodType            BloodType     @map("blood_type")
+  status               PatientStatus @default(ACTIVE)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("patients")
 }

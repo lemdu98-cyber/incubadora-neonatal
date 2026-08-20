@@ -18,8 +18,8 @@ Los siguientes valores son candidatos a enums PostgreSQL o restricciones `CHECK`
 | Tipo | Valores iniciales |
 |---|---|
 | `profile_status` | `ACTIVE`, `INACTIVE`, `SUSPENDED` |
-| `patient_status` | `ACTIVE`, `DISCHARGED`, `INACTIVE` |
-| `sex` | `FEMALE`, `MALE`, `INTERSEX`, `UNKNOWN`, `NOT_RECORDED` |
+| `patient_status` | `ACTIVE`, `INACTIVE` |
+| `patient_sex` | `MALE`, `FEMALE`, `UNSPECIFIED` |
 | `incubator_status` | `AVAILABLE`, `OCCUPIED`, `MAINTENANCE`, `INACTIVE` |
 | `admission_status` | `ACTIVE`, `DISCHARGED`, `CANCELLED` |
 | `device_type` | `ESP32`, `ESP8266` |
@@ -30,7 +30,7 @@ Los siguientes valores son candidatos a enums PostgreSQL o restricciones `CHECK`
 | `alarm_severity` | `INFO`, `WARNING`, `CRITICAL` |
 | `alarm_status` | `ACTIVE`, `ACKNOWLEDGED`, `RESOLVED` |
 
-`blood_type` se propone como texto nullable con `CHECK` sobre valores aprobados, no como dato obligatorio. Los nombres de rol son catálogo de datos (`roles`), no enum, para permitir gestión sin alterar el esquema.
+`blood_type` es un enum consistente con los ocho grupos ABO/Rh y `UNKNOWN`. Los nombres de rol son catálogo de datos (`roles`), no enum.
 
 ## Tablas
 
@@ -82,14 +82,15 @@ Se adopta la tabla puente en vez de `profiles.role_id`: soporta varios roles, ev
 | `birth_date` | `date` | no futura |
 | `birth_time` | `time` | nullable si se desconoce |
 | `sex` | `sex` | valor explícito, no inferido |
-| `birth_weight` | `numeric(7,2)` | nullable; positivo; unidad propuesta: gramos |
-| `gestational_age` | `numeric(4,1)` | nullable; positivo; unidad propuesta: semanas |
-| `blood_type` | `varchar(3)` | nullable; `CHECK` por catálogo aprobado |
+| `birth_weight_grams` | `integer` | gramos; entre 1 y 20000 como límite técnico |
+| `gestational_age_weeks` | `smallint` | entero entre 0 y 60, límite técnico |
+| `gestational_age_days` | `smallint` | entero entre 0 y 6 |
+| `blood_type` | `blood_type` | enum; incluye `UNKNOWN` |
 | `status` | `patient_status` | default `ACTIVE` |
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-Las unidades deben figurar en API y documentación; si se prevén unidades variables, se añadirán columnas de unidad o una convención inequívoca antes de migrar.
+`status` es exclusivamente administrativo y se limita inicialmente a `ACTIVE`/`INACTIVE` hasta implementar Admissions. No expresa salud, riesgo ni diagnóstico. Todavía no existe asociación con incubadoras o tutores.
 
 ### `guardians`
 

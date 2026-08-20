@@ -1,6 +1,6 @@
 # Base de datos
 
-Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. La infraestructura inicial de identidad ya está desplegada; los módulos clínicos continúan únicamente documentados.
+Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. La infraestructura de identidad está desplegada y la migración aditiva de `patients` está preparada para revisión/despliegue.
 
 ## Conectividad implementada
 
@@ -25,7 +25,7 @@ PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` tambié
 ## Contenido
 
 - [`schema.md`](./schema.md): modelo lógico propuesto, relaciones, restricciones e índices.
-- Las migraciones ejecutables y versionadas viven en `backend/prisma/migrations/`; [`migrations/`](./migrations/) permanece reservado para documentación o SQL complementario aprobado.
+- Las migraciones ejecutables y versionadas viven en `backend/prisma/migrations/`; la migración de pacientes crea sólo sus tres enums, tabla, checks e índices.
 
 ## Convenciones propuestas
 

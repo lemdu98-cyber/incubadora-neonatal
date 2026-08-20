@@ -11,12 +11,31 @@ import { PrismaService } from './../src/database/prisma.service';
 import { JwtVerificationService } from './../src/auth/services/jwt-verification.service';
 import { ProfilesService } from './../src/profiles/profiles.service';
 import { UsersService } from './../src/users/users.service';
+import { PatientsService } from './../src/patients/patients.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
   const adminId = '00000000-0000-4000-8000-000000000001';
   const userId = '00000000-0000-4000-8000-000000000002';
   const createdId = '00000000-0000-4000-8000-000000000003';
+  const technicianId = '00000000-0000-4000-8000-000000000004';
+  const doctorId = '00000000-0000-4000-8000-000000000005';
+  const nurseId = '00000000-0000-4000-8000-000000000006';
+  const patientId = '00000000-0000-4000-8000-000000000007';
+  const patient = {
+    id: patientId,
+    medicalRecordNumber: 'RN-2026-000001',
+    firstName: 'Mateo',
+    lastName: 'Perez',
+    birthDate: '2026-08-20',
+    birthTime: '03:15',
+    sex: 'MALE',
+    birthWeightGrams: 2450,
+    gestationalAgeWeeks: 36,
+    gestationalAgeDays: 4,
+    bloodType: 'O_POSITIVE',
+    status: 'ACTIVE',
+  };
   const createdUser = {
     id: createdId,
     email: 'doctor@example.com',
@@ -43,6 +62,18 @@ describe('AppController (e2e)', () => {
           if (token === 'user-token') {
             return Promise.resolve({ id: userId, email: 'user@example.com' });
           }
+          if (token === 'technician-token')
+            return Promise.resolve({
+              id: technicianId,
+              email: 'tech@example.com',
+            });
+          if (token === 'doctor-token')
+            return Promise.resolve({
+              id: doctorId,
+              email: 'doctor@example.com',
+            });
+          if (token === 'nurse-token')
+            return Promise.resolve({ id: nurseId, email: 'nurse@example.com' });
           return Promise.reject(new UnauthorizedException('Unauthorized'));
         }),
       })
@@ -62,7 +93,17 @@ describe('AppController (e2e)', () => {
           ),
         ),
         findRoleCodes: jest.fn((id: string) =>
-          Promise.resolve(id === adminId ? ['ADMIN'] : []),
+          Promise.resolve(
+            id === adminId
+              ? ['ADMIN']
+              : id === technicianId
+                ? ['TECHNICIAN']
+                : id === doctorId
+                  ? ['DOCTOR']
+                  : id === nurseId
+                    ? ['NURSE']
+                    : [],
+          ),
         ),
       })
       .overrideProvider(UsersService)
@@ -76,6 +117,16 @@ describe('AppController (e2e)', () => {
           id === createdId
             ? Promise.resolve(createdUser)
             : Promise.reject(new NotFoundException('User not found')),
+        ),
+      })
+      .overrideProvider(PatientsService)
+      .useValue({
+        create: jest.fn().mockResolvedValue(patient),
+        findAll: jest.fn().mockResolvedValue([patient]),
+        findOne: jest.fn((id: string) =>
+          id === patientId
+            ? Promise.resolve(patient)
+            : Promise.reject(new NotFoundException('Patient not found')),
         ),
       })
       .compile();
@@ -228,6 +279,68 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect(createdUser);
   });
+
+  it('POST /patients requires JWT', () =>
+    request(app.getHttpServer()).post('/patients').expect(401));
+  it('POST /patients rejects TECHNICIAN', () =>
+    request(app.getHttpServer())
+      .post('/patients')
+      .set('Authorization', 'Bearer technician-token')
+      .send(patient)
+      .expect(403));
+  it.each(['admin-token', 'doctor-token', 'nurse-token'])(
+    'POST /patients allows clinical role %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/patients')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          medicalRecordNumber: 'RN-2026-000001',
+          firstName: 'Mateo',
+          lastName: 'Perez',
+          birthDate: '2026-08-20',
+          birthTime: '03:15',
+          sex: 'MALE',
+          birthWeightGrams: 2450,
+          gestationalAgeWeeks: 36,
+          gestationalAgeDays: 4,
+          bloodType: 'O_POSITIVE',
+        })
+        .expect(201),
+  );
+  it('POST /patients rejects invalid DTO', () =>
+    request(app.getHttpServer())
+      .post('/patients')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ gestationalAgeDays: 7 })
+      .expect(400));
+  it('GET /patients rejects TECHNICIAN', () =>
+    request(app.getHttpServer())
+      .get('/patients')
+      .set('Authorization', 'Bearer technician-token')
+      .expect(403));
+  it('GET /patients returns list', () =>
+    request(app.getHttpServer())
+      .get('/patients')
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect([patient]));
+  it('GET /patients/:id rejects invalid UUID', () =>
+    request(app.getHttpServer())
+      .get('/patients/bad')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400));
+  it('GET /patients/:id returns 404', () =>
+    request(app.getHttpServer())
+      .get('/patients/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(404));
+  it('GET /patients/:id returns patient', () =>
+    request(app.getHttpServer())
+      .get(`/patients/${patientId}`)
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(200)
+      .expect(patient));
 
   afterEach(async () => {
     await app.close();

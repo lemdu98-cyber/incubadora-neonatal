@@ -25,3 +25,9 @@ export async function requireAdmin() {
   if (!context.user.roles.includes("ADMIN")) redirect("/dashboard");
   return context;
 }
+
+export async function requireClinicalRole() {
+  const context = await requireAuthenticated();
+  if (!context.user.roles.some((role) => ['ADMIN', 'DOCTOR', 'NURSE'].includes(role))) redirect('/dashboard');
+  return context;
+}

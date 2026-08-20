@@ -1,4 +1,5 @@
 import { getPublicEnv } from "@/lib/env";
+import type { BloodType, PatientSex, PatientStatus } from "@/lib/patient-options";
 
 export type CurrentUser = {
   id: string;
@@ -24,6 +25,13 @@ export type AppUser = {
 };
 export type CreateUserInput = Pick<AppUser, "firstName" | "lastName" | "roles"> & { email: string };
 export type CreatedUser = AppUser & { email: string; temporaryPassword: string };
+export type Patient = {
+  id: string; medicalRecordNumber: string; firstName: string; lastName: string;
+  birthDate: string; birthTime: string | null; sex: PatientSex; birthWeightGrams: number;
+  gestationalAgeWeeks: number; gestationalAgeDays: number; bloodType: BloodType;
+  status: PatientStatus; createdAt: string; updatedAt: string;
+};
+export type CreatePatientInput = Omit<Patient, "id" | "status" | "createdAt" | "updatedAt" | "birthTime"> & { birthTime?: string };
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -67,6 +75,12 @@ export function createUser(data: CreateUserInput, accessToken: string) {
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+export function getPatients(accessToken: string) { return protectedRequest<Patient[]>("/patients", accessToken); }
+export function getPatient(id: string, accessToken: string) { return protectedRequest<Patient>(`/patients/${encodeURIComponent(id)}`, accessToken); }
+export function createPatient(data: CreatePatientInput, accessToken: string) {
+  return protectedRequest<Patient>("/patients", accessToken, { method: "POST", body: JSON.stringify(data) });
 }
 
 export async function getHealth() {

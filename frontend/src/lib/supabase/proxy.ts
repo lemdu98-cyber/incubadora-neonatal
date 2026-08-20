@@ -24,7 +24,7 @@ export async function updateSession(request: NextRequest) {
   const authenticated = Boolean(data?.claims?.sub);
   const path = request.nextUrl.pathname;
 
-  if (!authenticated && (path.startsWith("/dashboard") || path.startsWith("/users"))) {
+  if (!authenticated && (path.startsWith("/dashboard") || path.startsWith("/users") || path.startsWith("/patients"))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   if (authenticated && path === "/login") {

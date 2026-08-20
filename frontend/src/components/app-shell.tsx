@@ -3,14 +3,15 @@ import type { ReactNode } from "react";
 import type { CurrentUser } from "@/lib/api";
 import { LogoutButton } from "./logout-button";
 
-type Props = { user: CurrentUser; children: ReactNode; active?: "dashboard" | "users" };
+type Props = { user: CurrentUser; children: ReactNode; active?: "dashboard" | "users" | "patients" };
 
 export function AppShell({ user, children, active }: Props) {
   const name = user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email;
   const admin = user.roles.includes("ADMIN");
+  const clinical = user.roles.some((role) => ["ADMIN", "DOCTOR", "NURSE"].includes(role));
   const nav = [
     { label: "Dashboard", href: "/dashboard", enabled: true, key: "dashboard" },
-    { label: "Pacientes", enabled: false },
+    ...(clinical ? [{ label: "Pacientes", href: "/patients", enabled: true, key: "patients" }] : []),
     { label: "Incubadoras", enabled: false },
     { label: "Alarmas", enabled: false },
     ...(admin ? [{ label: "Usuarios", href: "/users", enabled: true, key: "users" }] : []),
