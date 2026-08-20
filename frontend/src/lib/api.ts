@@ -5,6 +5,7 @@ import type { IncubatorStatus } from "@/lib/incubator-options";
 import type { AdmissionStatus } from "@/lib/admission-options";
 import type { DeviceStatus, DeviceType } from "@/lib/device-options";
 import type { SensorStatus, SensorType } from "@/lib/sensor-options";
+import type { MeasurementCategory, MeasurementValueType } from "@/lib/measurement-options";
 
 export type CurrentUser = {
   id: string;
@@ -57,6 +58,8 @@ export type Device={id:string;hardwareUid:string;code:string;deviceType:DeviceTy
 export type CreateDeviceInput={hardwareUid:string;code:string;deviceType:DeviceType;incubatorId:string;firmwareVersion?:string;notes?:string};
 export type Sensor={id:string;code:string;sensorType:SensorType;deviceId:string;status:SensorStatus;channel:string|null;calibrationMetadata:Record<string,unknown>|null;notes:string|null;createdAt:string;updatedAt:string;device:{id:string;code:string;deviceType:DeviceType;status:DeviceStatus;incubator:{id:string;code:string;name:string;location:string}}};
 export type CreateSensorInput={code:string;sensorType:SensorType;deviceId:string;channel?:string;notes?:string};
+export type MeasurementDefinition={id:string;code:string;name:string;unitSymbol:string;valueType:MeasurementValueType;category:MeasurementCategory;description:string|null;decimalPlaces:number;createdAt:string;updatedAt:string};
+export type SensorCapability={sensorId:string;measurementDefinitionId:string;createdAt:string;measurementDefinition:MeasurementDefinition};
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -133,6 +136,11 @@ export function getSensors(accessToken:string,filters?:{deviceId?:string;sensorT
 export function getSensor(id:string,accessToken:string){return protectedRequest<Sensor>(`/sensors/${encodeURIComponent(id)}`,accessToken)}
 export function createSensor(data:CreateSensorInput,accessToken:string){return protectedRequest<Sensor>('/sensors',accessToken,{method:'POST',body:JSON.stringify(data)})}
 export function getDeviceSensors(id:string,accessToken:string){return protectedRequest<Sensor[]>(`/devices/${encodeURIComponent(id)}/sensors`,accessToken)}
+export function getMeasurementDefinitions(accessToken:string){return protectedRequest<MeasurementDefinition[]>('/measurement-definitions',accessToken)}
+export function getMeasurementDefinition(id:string,accessToken:string){return protectedRequest<MeasurementDefinition>(`/measurement-definitions/${encodeURIComponent(id)}`,accessToken)}
+export function getSensorCapabilities(sensorId:string,accessToken:string){return protectedRequest<MeasurementDefinition[]>(`/sensors/${encodeURIComponent(sensorId)}/capabilities`,accessToken)}
+export function assignSensorCapability(sensorId:string,measurementDefinitionId:string,accessToken:string){return protectedRequest<SensorCapability>(`/sensors/${encodeURIComponent(sensorId)}/capabilities`,accessToken,{method:'POST',body:JSON.stringify({measurementDefinitionId})})}
+export function removeSensorCapability(sensorId:string,measurementDefinitionId:string,accessToken:string){return protectedRequest<{status:string}>(`/sensors/${encodeURIComponent(sensorId)}/capabilities/${encodeURIComponent(measurementDefinitionId)}`,accessToken,{method:'DELETE'})}
 
 export async function getHealth() {
   try {

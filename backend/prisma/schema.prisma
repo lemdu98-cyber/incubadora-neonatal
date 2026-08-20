@@ -110,6 +110,22 @@ enum SensorStatus {
   @@map("sensor_status")
 }
 
+enum MeasurementValueType {
+  FLOAT
+  INTEGER
+  BOOLEAN
+
+  @@map("measurement_value_type")
+}
+
+enum MeasurementCategory {
+  ENVIRONMENTAL
+  PHYSIOLOGICAL
+  TECHNICAL
+
+  @@map("measurement_category")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -241,23 +257,54 @@ model Device {
 }
 
 model Sensor {
-  id                  String       @id @default(uuid()) @db.Uuid
-  code                String       @unique @db.VarChar(50)
-  sensorType          SensorType   @map("sensor_type")
-  deviceId            String       @map("device_id") @db.Uuid
-  status              SensorStatus @default(ACTIVE)
-  channel             String?      @db.VarChar(50)
-  calibrationMetadata Json?        @map("calibration_metadata") @db.JsonB
-  notes               String?      @db.Text
-  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  device              Device       @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  id                  String             @id @default(uuid()) @db.Uuid
+  code                String             @unique @db.VarChar(50)
+  sensorType          SensorType         @map("sensor_type")
+  deviceId            String             @map("device_id") @db.Uuid
+  status              SensorStatus       @default(ACTIVE)
+  channel             String?            @db.VarChar(50)
+  calibrationMetadata Json?              @map("calibration_metadata") @db.JsonB
+  notes               String?            @db.Text
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  device              Device             @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  capabilities        SensorCapability[]
 
   @@index([deviceId])
   @@index([sensorType])
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("sensors")
+}
+
+model MeasurementDefinition {
+  id            String               @id @default(uuid()) @db.Uuid
+  code          String               @unique @db.VarChar(60)
+  name          String               @db.VarChar(120)
+  unitSymbol    String               @map("unit_symbol") @db.VarChar(30)
+  valueType     MeasurementValueType @map("value_type")
+  category      MeasurementCategory
+  description   String?              @db.VarChar(255)
+  decimalPlaces Int                  @map("decimal_places") @db.SmallInt
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  capabilities  SensorCapability[]
+
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
+  @@map("measurement_definitions")
+}
+
+model SensorCapability {
+  sensorId                String                @map("sensor_id") @db.Uuid
+  measurementDefinitionId String                @map("measurement_definition_id") @db.Uuid
+  createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  sensor                  Sensor                @relation(fields: [sensorId], references: [id], onDelete: Restrict)
+  measurementDefinition   MeasurementDefinition @relation(fields: [measurementDefinitionId], references: [id], onDelete: Restrict)
+
+  @@id([sensorId, measurementDefinitionId])
+  @@index([measurementDefinitionId])
+  @@map("sensor_capabilities")
 }
 
 model Admission {

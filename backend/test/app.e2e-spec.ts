@@ -17,6 +17,7 @@ import { IncubatorsService } from './../src/incubators/incubators.service';
 import { AdmissionsService } from './../src/admissions/admissions.service';
 import { DevicesService } from './../src/devices/devices.service';
 import { SensorsService } from './../src/sensors/sensors.service';
+import { MeasurementsService } from './../src/measurements/measurements.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -105,6 +106,17 @@ describe('AppController (e2e)', () => {
         location: incubator.location,
       },
     },
+  };
+  const measurementDefinitionId = '00000000-0000-4000-8000-000000000013';
+  const measurementDefinition = {
+    id: measurementDefinitionId,
+    code: 'AIR_TEMPERATURE',
+    name: 'Temperatura ambiente',
+    unitSymbol: '°C',
+    valueType: 'FLOAT',
+    category: 'ENVIRONMENTAL',
+    description: null,
+    decimalPlaces: 1,
   };
   const admission = {
     id: admissionId,
@@ -303,6 +315,24 @@ describe('AppController (e2e)', () => {
             : Promise.reject(new NotFoundException('Sensor not found')),
         ),
         findForDevice: jest.fn().mockResolvedValue([sensor]),
+      })
+      .overrideProvider(MeasurementsService)
+      .useValue({
+        findAll: jest.fn().mockResolvedValue([measurementDefinition]),
+        findOne: jest.fn((id: string) =>
+          id === measurementDefinitionId
+            ? Promise.resolve(measurementDefinition)
+            : Promise.reject(
+                new NotFoundException('Measurement definition not found'),
+              ),
+        ),
+        capabilities: jest.fn().mockResolvedValue([measurementDefinition]),
+        assign: jest.fn().mockResolvedValue({
+          sensorId,
+          measurementDefinitionId,
+          measurementDefinition,
+        }),
+        remove: jest.fn().mockResolvedValue({ status: 'removed' }),
       })
       .compile();
 
@@ -882,6 +912,79 @@ describe('AppController (e2e)', () => {
       .set('Authorization', 'Bearer technician-token')
       .expect(200)
       .expect([sensor]));
+
+  it.each(['admin-token', 'doctor-token', 'nurse-token', 'technician-token'])(
+    'GET measurement definitions allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get('/measurement-definitions')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([measurementDefinition]),
+  );
+  it('GET measurement definition validates UUID', () =>
+    request(app.getHttpServer())
+      .get('/measurement-definitions/bad')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400));
+  it('GET measurement definition returns 404', () =>
+    request(app.getHttpServer())
+      .get('/measurement-definitions/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(404));
+  it('GET measurement definition detail', () =>
+    request(app.getHttpServer())
+      .get(`/measurement-definitions/${measurementDefinitionId}`)
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect(measurementDefinition));
+  it.each(['admin-token', 'doctor-token', 'nurse-token', 'technician-token'])(
+    'GET capabilities allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get(`/sensors/${sensorId}/capabilities`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([measurementDefinition]),
+  );
+  it('POST capability requires JWT', () =>
+    request(app.getHttpServer())
+      .post(`/sensors/${sensorId}/capabilities`)
+      .send({ measurementDefinitionId })
+      .expect(401));
+  it.each(['doctor-token', 'nurse-token'])(
+    'POST capability rejects %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post(`/sensors/${sensorId}/capabilities`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ measurementDefinitionId })
+        .expect(403),
+  );
+  it.each(['admin-token', 'technician-token'])(
+    'POST capability allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post(`/sensors/${sensorId}/capabilities`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ measurementDefinitionId })
+        .expect(201),
+  );
+  it('POST capability validates definition UUID', () =>
+    request(app.getHttpServer())
+      .post(`/sensors/${sensorId}/capabilities`)
+      .set('Authorization', 'Bearer admin-token')
+      .send({ measurementDefinitionId: 'bad' })
+      .expect(400));
+  it.each(['admin-token', 'technician-token'])(
+    'DELETE capability allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .delete(`/sensors/${sensorId}/capabilities/${measurementDefinitionId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect({ status: 'removed' }),
+  );
 
   afterEach(async () => {
     await app.close();

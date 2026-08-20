@@ -1,0 +1,6 @@
+export const MEASUREMENT_VALUE_TYPES = ['FLOAT', 'INTEGER', 'BOOLEAN'] as const;
+export const MEASUREMENT_CATEGORIES = [
+  'ENVIRONMENTAL',
+  'PHYSIOLOGICAL',
+  'TECHNICAL',
+] as const;

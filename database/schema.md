@@ -1,6 +1,6 @@
 # Modelo de datos propuesto
 
-> Estado: identidad, pacientes, tutores, relaciones paciente–tutor, incubadoras, Admissions, Devices y Sensors están desplegados mediante migraciones Prisma. Telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
+> Estado: identidad, pacientes, tutores, relaciones paciente–tutor, incubadoras, Admissions, Devices, Sensors y Measurement Definitions están desplegados mediante migraciones Prisma. Telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
 
 ## Criterios generales
 
@@ -189,7 +189,15 @@ La FK de incubadora usa `ON DELETE RESTRICT`. Hay UNIQUE sobre `hardware_uid` y 
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-UNIQUE global sobre `code`; índices por `device_id`, `sensor_type`, `status` y creación descendente; FK `ON DELETE RESTRICT`. No se incluye `unit`: un sensor puede producir varias magnitudes y sus unidades pertenecerán al futuro modelo de mediciones. `calibration_metadata` no se expone en el formulario. Si la calibración requiere trazabilidad regulada, se extraerá a una tabla histórica.
+UNIQUE global sobre `code`; índices por `device_id`, `sensor_type`, `status` y creación descendente; FK `ON DELETE RESTRICT`. No se incluye `unit`: un sensor puede producir varias magnitudes y sus unidades pertenecen a `measurement_definitions`. `calibration_metadata` no se expone en el formulario.
+
+### `measurement_definitions`
+
+Catálogo versionado de magnitudes, independiente del hardware y de límites clínicos. Contiene UUID, `code` UNIQUE estable, nombre, `unit_symbol`, `value_type` (`FLOAT`, `INTEGER`, `BOOLEAN`), categoría (`ENVIRONMENTAL`, `PHYSIOLOGICAL`, `TECHNICAL`), descripción nullable, `decimal_places` y timestamps. `decimal_places` tiene CHECK entre 0 y 6 y sólo recomienda presentación; no certifica precisión médica. Índices por categoría y creación descendente.
+
+### `sensor_capabilities`
+
+Asociación N:M explícita entre Sensor y MeasurementDefinition, con PK (`sensor_id`, `measurement_definition_id`) y `created_at`. Ambas FKs usan `ON DELETE RESTRICT`; existe índice inverso por `measurement_definition_id`. Describe capacidades configuradas, no lecturas reales.
 
 ### `telemetry`
 
@@ -199,11 +207,9 @@ UNIQUE global sobre `code`; índices por `device_id`, `sensor_type`, `status` y 
 | `incubator_id` | `uuid` | FK `incubators(id)` |
 | `device_id` | `uuid` | FK `devices(id)` |
 | `admission_id` | `uuid` | nullable; FK `admissions(id)` |
-| `body_temperature` | `numeric(5,2)` | nullable |
-| `air_temperature` | `numeric(5,2)` | nullable |
-| `humidity` | `numeric(5,2)` | nullable |
-| `spo2` | `numeric(5,2)` | nullable |
-| `heart_rate` | `numeric(6,2)` | nullable |
+| `sensor_id` | `uuid` | FK `sensors(id)` |
+| `measurement_definition_id` | `uuid` | FK `measurement_definitions(id)` |
+| `value` | `numeric` | valor validado según `value_type` |
 | `recorded_at` | `timestamptz` | timestamp del dispositivo ya validado |
 | `received_at` | `timestamptz` | default `now()`; timestamp del servidor |
 

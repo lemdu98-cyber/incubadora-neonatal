@@ -1,6 +1,6 @@
 # Base de datos
 
-Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad, pacientes, tutores, incubadoras, historial de ingresos, dispositivos y sensores están desplegados mediante migraciones aditivas versionadas.
+Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad, pacientes, tutores, incubadoras, historial de ingresos, dispositivos, sensores y catálogo de magnitudes están desplegados mediante migraciones aditivas versionadas.
 
 ## Conectividad implementada
 
@@ -29,6 +29,7 @@ PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` tambié
 - La migración de Admissions crea `admission_status`, `admissions`, FKs restrictivas, checks temporales e índices únicos parciales para un solo ingreso activo por paciente e incubadora.
 - La migración de Devices crea `device_type`, `device_status`, `devices`, sus unicidades, índices y la FK restrictiva hacia `incubators`; no crea dispositivos ni datos de ejemplo.
 - La migración de Sensors crea `sensor_type`, `sensor_status`, `sensors`, sus índices y la FK restrictiva hacia `devices`; no crea sensores ni datos de ejemplo.
+- La migración de Measurements crea los enums, `measurement_definitions`, `sensor_capabilities`, checks, índices y FKs restrictivas. El seed idempotente administra sólo el catálogo base y no asigna sensores reales.
 
 ## Convenciones propuestas
 

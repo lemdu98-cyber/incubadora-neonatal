@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { CurrentUser } from "@/lib/api";
 import { LogoutButton } from "./logout-button";
 
-type Props = { user: CurrentUser; children: ReactNode; active?: "dashboard" | "users" | "patients" | "guardians" | "incubators" | "admissions" | "devices" | "sensors" };
+type Props = { user: CurrentUser; children: ReactNode; active?: "dashboard" | "users" | "patients" | "guardians" | "incubators" | "admissions" | "devices" | "sensors" | "measurements" };
 
 export function AppShell({ user, children, active }: Props) {
   const name = user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email;
@@ -18,6 +18,7 @@ export function AppShell({ user, children, active }: Props) {
     { label: "Incubadoras", href: "/incubators", enabled: true, key: "incubators" },
     ...(technical ? [{ label: "Dispositivos", href: "/devices", enabled: true, key: "devices" }] : []),
     ...(technical ? [{ label: "Sensores", href: "/sensors", enabled: true, key: "sensors" }] : []),
+    ...(technical ? [{ label: "Magnitudes", href: "/measurement-definitions", enabled: true, key: "measurements" }] : []),
     { label: "Alarmas", enabled: false },
     ...(admin ? [{ label: "Usuarios", href: "/users", enabled: true, key: "users" }] : []),
     { label: "Reportes", enabled: false },

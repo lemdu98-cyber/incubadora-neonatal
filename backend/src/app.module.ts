@@ -14,6 +14,7 @@ import { IncubatorsModule } from './incubators/incubators.module';
 import { AdmissionsModule } from './admissions/admissions.module';
 import { DevicesModule } from './devices/devices.module';
 import { SensorsModule } from './sensors/sensors.module';
+import { MeasurementsModule } from './measurements/measurements.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SensorsModule } from './sensors/sensors.module';
     AdmissionsModule,
     DevicesModule,
     SensorsModule,
+    MeasurementsModule,
     DatabaseModule,
     HealthModule,
     GuardiansModule,
