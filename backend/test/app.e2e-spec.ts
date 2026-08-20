@@ -16,6 +16,7 @@ import { GuardiansService } from './../src/guardians/guardians.service';
 import { IncubatorsService } from './../src/incubators/incubators.service';
 import { AdmissionsService } from './../src/admissions/admissions.service';
 import { DevicesService } from './../src/devices/devices.service';
+import { SensorsService } from './../src/sensors/sensors.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -80,6 +81,29 @@ describe('AppController (e2e)', () => {
       name: incubator.name,
       location: incubator.location,
       status: incubator.status,
+    },
+  };
+  const sensorId = '00000000-0000-4000-8000-000000000012';
+  const sensor = {
+    id: sensorId,
+    code: 'DHT11-001',
+    sensorType: 'DHT11',
+    deviceId,
+    status: 'ACTIVE',
+    channel: 'GPIO4',
+    calibrationMetadata: null,
+    notes: null,
+    device: {
+      id: deviceId,
+      code: device.code,
+      deviceType: device.deviceType,
+      status: device.status,
+      incubator: {
+        id: incubatorId,
+        code: incubator.code,
+        name: incubator.name,
+        location: incubator.location,
+      },
     },
   };
   const admission = {
@@ -268,6 +292,17 @@ describe('AppController (e2e)', () => {
             : Promise.reject(new NotFoundException('Device not found')),
         ),
         findForIncubator: jest.fn().mockResolvedValue([device]),
+      })
+      .overrideProvider(SensorsService)
+      .useValue({
+        create: jest.fn().mockResolvedValue(sensor),
+        findAll: jest.fn().mockResolvedValue([sensor]),
+        findOne: jest.fn((id: string) =>
+          id === sensorId
+            ? Promise.resolve(sensor)
+            : Promise.reject(new NotFoundException('Sensor not found')),
+        ),
+        findForDevice: jest.fn().mockResolvedValue([sensor]),
       })
       .compile();
 
@@ -776,6 +811,77 @@ describe('AppController (e2e)', () => {
       .set('Authorization', 'Bearer technician-token')
       .expect(200)
       .expect([device]));
+
+  const sensorInput = {
+    code: 'DHT11-001',
+    sensorType: 'DHT11',
+    deviceId,
+    channel: 'GPIO4',
+  };
+  it('POST /sensors requires JWT', () =>
+    request(app.getHttpServer())
+      .post('/sensors')
+      .send(sensorInput)
+      .expect(401));
+  it.each(['doctor-token', 'nurse-token'])(
+    'POST /sensors rejects %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/sensors')
+        .set('Authorization', `Bearer ${token}`)
+        .send(sensorInput)
+        .expect(403),
+  );
+  it.each(['admin-token', 'technician-token'])(
+    'POST /sensors allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/sensors')
+        .set('Authorization', `Bearer ${token}`)
+        .send(sensorInput)
+        .expect(201)
+        .expect(sensor),
+  );
+  it.each(['status', 'calibrationMetadata'])(
+    'POST /sensors rejects %s',
+    (field) =>
+      request(app.getHttpServer())
+        .post('/sensors')
+        .set('Authorization', 'Bearer admin-token')
+        .send({ ...sensorInput, [field]: field === 'status' ? 'ACTIVE' : {} })
+        .expect(400),
+  );
+  it.each(['admin-token', 'doctor-token', 'nurse-token', 'technician-token'])(
+    'GET /sensors allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get('/sensors?sensorType=DHT11')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([sensor]),
+  );
+  it('GET /sensors validates UUID', () =>
+    request(app.getHttpServer())
+      .get('/sensors/bad')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400));
+  it('GET /sensors returns 404', () =>
+    request(app.getHttpServer())
+      .get('/sensors/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(404));
+  it('GET /sensors detail', () =>
+    request(app.getHttpServer())
+      .get(`/sensors/${sensorId}`)
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect(sensor));
+  it('GET device sensors', () =>
+    request(app.getHttpServer())
+      .get(`/devices/${deviceId}/sensors`)
+      .set('Authorization', 'Bearer technician-token')
+      .expect(200)
+      .expect([sensor]));
 
   afterEach(async () => {
     await app.close();

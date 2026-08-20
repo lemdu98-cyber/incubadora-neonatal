@@ -1,6 +1,6 @@
 # Modelo de datos propuesto
 
-> Estado: identidad, pacientes, tutores, relaciones paciente–tutor, incubadoras, Admissions y Devices están desplegados mediante migraciones Prisma. Sensores, telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
+> Estado: identidad, pacientes, tutores, relaciones paciente–tutor, incubadoras, Admissions, Devices y Sensors están desplegados mediante migraciones Prisma. Telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
 
 ## Criterios generales
 
@@ -25,7 +25,7 @@ Los siguientes valores son candidatos a enums PostgreSQL o restricciones `CHECK`
 | `device_type` | `ESP32`, `ESP8266`, `OTHER` |
 | `device_status` | `ACTIVE`, `MAINTENANCE`, `DISABLED` |
 | `sensor_type` | `DHT11`, `DHT22`, `MAX30100`, `MAX30205`, `OTHER` |
-| `sensor_status` | `ACTIVE`, `FAULT`, `CALIBRATION`, `INACTIVE` |
+| `sensor_status` | `ACTIVE`, `MAINTENANCE`, `DISABLED` |
 | `alarm_parameter` | `BODY_TEMPERATURE`, `AIR_TEMPERATURE`, `HUMIDITY`, `SPO2`, `HEART_RATE` |
 | `alarm_severity` | `INFO`, `WARNING`, `CRITICAL` |
 | `alarm_status` | `ACTIVE`, `ACKNOWLEDGED`, `RESOLVED` |
@@ -181,13 +181,15 @@ La FK de incubadora usa `ON DELETE RESTRICT`. Hay UNIQUE sobre `hardware_uid` y 
 | `id` | `uuid` | PK; default UUID |
 | `device_id` | `uuid` | FK `devices(id)` |
 | `sensor_type` | `sensor_type` | tipo físico |
-| `code` | `varchar(50)` | identificador dentro del dispositivo |
+| `code` | `varchar(50)` | UNIQUE global; normalizado a mayúsculas |
 | `status` | `sensor_status` | default `ACTIVE` |
-| `calibration_metadata` | `jsonb` | default `{}`; sólo datos no secretos y validados |
+| `channel` | `varchar(50)` | nullable; conexión física/lógica informativa |
+| `calibration_metadata` | `jsonb` | nullable; metadatos técnicos, no clínicos |
+| `notes` | `text` | nullable; observaciones técnicas |
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-UNIQUE (`device_id`, `code`), índice por `device_id`; FK `ON DELETE RESTRICT`. Si la calibración requiere trazabilidad regulada, se extraerá más adelante a una tabla histórica en vez de sobrescribir JSON.
+UNIQUE global sobre `code`; índices por `device_id`, `sensor_type`, `status` y creación descendente; FK `ON DELETE RESTRICT`. No se incluye `unit`: un sensor puede producir varias magnitudes y sus unidades pertenecerán al futuro modelo de mediciones. `calibration_metadata` no se expone en el formulario. Si la calibración requiere trazabilidad regulada, se extraerá a una tabla histórica.
 
 ### `telemetry`
 

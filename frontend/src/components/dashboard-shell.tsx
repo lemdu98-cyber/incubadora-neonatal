@@ -12,6 +12,7 @@ export function DashboardShell({ user, backendConnected, databaseConnected }: Pr
     { name: "Pacientes" },
     { name: "Incubadoras", href: "/incubators" },
     ...(deviceManager ? [{ name: "Dispositivos", href: "/devices" }] : []),
+    ...(deviceManager ? [{ name: "Sensores", href: "/sensors" }] : []),
     { name: "Alarmas" },
     ...(admin ? [{ name: "Usuarios" }] : []),
     { name: "Reportes" },

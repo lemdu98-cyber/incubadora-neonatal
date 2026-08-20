@@ -4,6 +4,7 @@ import type { GuardianRelationship } from "@/lib/guardian-options";
 import type { IncubatorStatus } from "@/lib/incubator-options";
 import type { AdmissionStatus } from "@/lib/admission-options";
 import type { DeviceStatus, DeviceType } from "@/lib/device-options";
+import type { SensorStatus, SensorType } from "@/lib/sensor-options";
 
 export type CurrentUser = {
   id: string;
@@ -54,6 +55,8 @@ export type CreateAdmissionInput = { patientId:string; incubatorId:string; admit
 export type DischargeAdmissionInput = { dischargedAt:string; status:Exclude<AdmissionStatus,"ACTIVE"> };
 export type Device={id:string;hardwareUid:string;code:string;deviceType:DeviceType;incubatorId:string;status:DeviceStatus;firmwareVersion:string|null;lastSeenAt:string|null;notes:string|null;createdAt:string;updatedAt:string;incubator:{id:string;code:string;name:string;location:string;status:IncubatorStatus}};
 export type CreateDeviceInput={hardwareUid:string;code:string;deviceType:DeviceType;incubatorId:string;firmwareVersion?:string;notes?:string};
+export type Sensor={id:string;code:string;sensorType:SensorType;deviceId:string;status:SensorStatus;channel:string|null;calibrationMetadata:Record<string,unknown>|null;notes:string|null;createdAt:string;updatedAt:string;device:{id:string;code:string;deviceType:DeviceType;status:DeviceStatus;incubator:{id:string;code:string;name:string;location:string}}};
+export type CreateSensorInput={code:string;sensorType:SensorType;deviceId:string;channel?:string;notes?:string};
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -126,6 +129,10 @@ export function getDevices(accessToken:string,filters?:{incubatorId?:string;devi
 export function getDevice(id:string,accessToken:string){return protectedRequest<Device>(`/devices/${encodeURIComponent(id)}`,accessToken)}
 export function createDevice(data:CreateDeviceInput,accessToken:string){return protectedRequest<Device>('/devices',accessToken,{method:'POST',body:JSON.stringify(data)})}
 export function getIncubatorDevices(id:string,accessToken:string){return protectedRequest<Device[]>(`/incubators/${encodeURIComponent(id)}/devices`,accessToken)}
+export function getSensors(accessToken:string,filters?:{deviceId?:string;sensorType?:SensorType;status?:SensorStatus}){const query=new URLSearchParams(Object.entries(filters??{}).filter((entry):entry is[string,string]=>Boolean(entry[1])));return protectedRequest<Sensor[]>(`/sensors${query.size?`?${query}`:''}`,accessToken)}
+export function getSensor(id:string,accessToken:string){return protectedRequest<Sensor>(`/sensors/${encodeURIComponent(id)}`,accessToken)}
+export function createSensor(data:CreateSensorInput,accessToken:string){return protectedRequest<Sensor>('/sensors',accessToken,{method:'POST',body:JSON.stringify(data)})}
+export function getDeviceSensors(id:string,accessToken:string){return protectedRequest<Sensor[]>(`/devices/${encodeURIComponent(id)}/sensors`,accessToken)}
 
 export async function getHealth() {
   try {

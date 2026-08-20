@@ -92,6 +92,24 @@ enum DeviceStatus {
   @@map("device_status")
 }
 
+enum SensorType {
+  DHT11
+  DHT22
+  MAX30100
+  MAX30205
+  OTHER
+
+  @@map("sensor_type")
+}
+
+enum SensorStatus {
+  ACTIVE
+  MAINTENANCE
+  DISABLED
+
+  @@map("sensor_status")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -214,11 +232,32 @@ model Device {
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   incubator       Incubator    @relation(fields: [incubatorId], references: [id], onDelete: Restrict)
+  sensors         Sensor[]
 
   @@index([incubatorId])
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("devices")
+}
+
+model Sensor {
+  id                  String       @id @default(uuid()) @db.Uuid
+  code                String       @unique @db.VarChar(50)
+  sensorType          SensorType   @map("sensor_type")
+  deviceId            String       @map("device_id") @db.Uuid
+  status              SensorStatus @default(ACTIVE)
+  channel             String?      @db.VarChar(50)
+  calibrationMetadata Json?        @map("calibration_metadata") @db.JsonB
+  notes               String?      @db.Text
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  device              Device       @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+
+  @@index([deviceId])
+  @@index([sensorType])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("sensors")
 }
 
 model Admission {

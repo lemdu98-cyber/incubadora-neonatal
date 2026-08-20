@@ -1,0 +1,10 @@
+import { notFound, redirect } from 'next/navigation';
+import { AppShell } from '@/components/app-shell';
+import { SensorStatusBadge } from '@/components/sensor-status-badge';
+import { ApiError, getSensor, type Sensor } from '@/lib/api';
+import { requireSensorReader } from '@/lib/auth-context';
+import { SENSOR_TYPE_LABELS } from '@/lib/sensor-options';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const date=(value:string)=>new Intl.DateTimeFormat('es-BO',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
+export default async function Page({params}:{params:Promise<{id:string}>}){const{id}=await params;if(!UUID.test(id))notFound();const{user,accessToken}=await requireSensorReader();let sensor:Sensor|null=null;try{sensor=await getSensor(id,accessToken)}catch(error){if(error instanceof ApiError&&error.status===404)notFound();if(error instanceof ApiError&&error.status===401)redirect('/auth/logout?reason=expired')}return <AppShell user={user} active="sensors">{sensor?<SensorDetails sensor={sensor}/>:<p role="alert">No fue posible cargar el sensor.</p>}</AppShell>}
+export function SensorDetails({sensor}:{sensor:Sensor}){const calibration=sensor.calibrationMetadata?JSON.stringify(sensor.calibrationMetadata,null,2):'Sin datos de calibración';const values=[['Código',sensor.code],['Tipo',SENSOR_TYPE_LABELS[sensor.sensorType]],['Dispositivo',sensor.device.code],['Incubadora',`${sensor.device.incubator.code} · ${sensor.device.incubator.name}`],['Canal',sensor.channel??'No registrado'],['Notas',sensor.notes??'Sin notas técnicas'],['Metadatos de calibración',calibration],['Fecha de registro',date(sensor.createdAt)]];return <><div className="flex gap-4"><h1 className="text-3xl font-bold">{sensor.code}</h1><SensorStatusBadge status={sensor.status}/></div><dl className="mt-7 grid gap-5 rounded-2xl border bg-white p-6 sm:grid-cols-2">{values.map(([key,value])=><div key={key}><dt>{key}</dt><dd className="whitespace-pre-wrap font-semibold">{value}</dd></div>)}</dl></>}
