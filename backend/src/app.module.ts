@@ -15,6 +15,9 @@ import { UsersModule } from './users/users.module';
       isGlobal: true,
       validationSchema: Joi.object({
         DATABASE_URL: Joi.string().uri().required(),
+        FRONTEND_URL: Joi.string()
+          .uri({ scheme: ['http', 'https'] })
+          .required(),
         PORT: Joi.number().port().default(3001),
         NODE_ENV: Joi.string()
           .valid('development', 'test', 'production')

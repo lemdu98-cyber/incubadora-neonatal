@@ -61,3 +61,11 @@ El dashboard vuelve a validar la sesión en el servidor, obtiene el access token
 Si no hay sesión, `/dashboard` redirige a `/login`. Si NestJS rechaza el JWT, la ruta `/auth/logout` invalida la sesión Supabase y limpia sus cookies antes de redirigir. Un fallo de red o backend muestra un estado indisponible y no conserva un dashboard con información anterior.
 
 El bundle sólo utiliza `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `NEXT_PUBLIC_API_URL`. Las credenciales administrativas y de base de datos no forman parte del frontend.
+
+## Administración web de usuarios
+
+Las rutas `/users`, `/users/new` y `/users/[id]` requieren una sesión Supabase válida y que `/auth/me` devuelva `ADMIN`. Esta comprobación mejora la experiencia, pero NestJS continúa aplicando la autorización definitiva mediante `RolesGuard` en cada endpoint.
+
+La capa `frontend/src/lib/api.ts` centraliza `GET /users`, `GET /users/:id` y `POST /users`. Cada llamada recibe el access token de la sesión actual y lo transmite exclusivamente en el header Bearer. El frontend no usa la Admin API de Supabase ni implementa signup público.
+
+La contraseña temporal devuelta después de `POST /users` existe sólo en estado React mientras se muestra el diálogo de éxito. No se guarda en cookies, Web Storage, URL, logs ni analytics; desaparece al cerrar el diálogo, navegar o recargar. El usuario administrador debe copiarla antes de abandonar esa pantalla.

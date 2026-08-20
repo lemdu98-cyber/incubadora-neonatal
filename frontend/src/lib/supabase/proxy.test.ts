@@ -13,4 +13,10 @@ describe("route protection", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost/login");
   });
+
+  it("redirige un usuario no autenticado fuera de Usuarios", async () => {
+    getClaims.mockResolvedValue({ data: { claims: null } });
+    const response = await updateSession(new NextRequest("http://localhost/users"));
+    expect(response.headers.get("location")).toBe("http://localhost/login");
+  });
 });

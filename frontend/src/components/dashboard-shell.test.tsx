@@ -25,4 +25,9 @@ describe("Dashboard", () => {
     await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
     expect(replace).toHaveBeenCalledWith("/login");
   });
+
+  it("oculta Usuarios cuando /auth/me no contiene ADMIN", () => {
+    render(<DashboardShell user={{ ...user, roles: ["DOCTOR"] }} backendConnected databaseConnected />);
+    expect(screen.queryByText("Usuarios")).not.toBeInTheDocument();
+  });
 });
