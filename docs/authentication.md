@@ -31,7 +31,7 @@ Se eligió crear perfiles desde el backend después del alta administrativa, no 
 
 El correo sigue siendo propiedad de Supabase Auth y no se duplica en `profiles`. `GET /users` y `GET /users/:id` lo resuelven mediante la API administrativa. Los tres endpoints `/users` requieren JWT válido y rol `ADMIN` obtenido de PostgreSQL.
 
-La contraseña temporal se genera con entropía criptográfica, se entrega sólo en la respuesta exitosa de creación y no se registra ni persiste en tablas de aplicación. Es una solución transitoria; una futura entrega por invitación requerirá configurar previamente URL de redirección y plantilla de correo. Aún no existen edición, eliminación, restablecimiento de contraseña ni frontend para este flujo.
+La contraseña temporal se genera con entropía criptográfica, se entrega sólo en la respuesta exitosa de creación y no se registra ni persiste en tablas de aplicación. Es una solución transitoria; una futura entrega por invitación requerirá configurar previamente URL de redirección y plantilla de correo. Aún no existen edición, eliminación, restablecimiento de contraseña ni pantalla frontend de administración de usuarios.
 
 ## Primer administrador
 
@@ -39,7 +39,7 @@ El bootstrap es deliberadamente manual y no forma parte del arranque ni del seed
 
 Se invoca manualmente con `npm run bootstrap:admin`. El comando muestra la contraseña temporal una sola vez; no debe ejecutarse en logs compartidos ni automatizaciones que conserven la salida. Este repositorio no ejecuta el bootstrap automáticamente.
 
-## Flujo futuro del frontend
+## Flujo del frontend
 
 ```text
 email/password
@@ -50,4 +50,14 @@ email/password
   -> ProfilesService / RolesGuard
 ```
 
-La Publishable Key podrá estar en el frontend. `SUPABASE_SECRET_KEY`, `DATABASE_URL` y cualquier credencial administrativa permanecen exclusivamente en el backend.
+La Publishable Key está destinada al frontend. `SUPABASE_SECRET_KEY`, `DATABASE_URL` y cualquier credencial administrativa permanecen exclusivamente en el backend.
+
+## Sesión web en Next.js
+
+El frontend usa `@supabase/ssr` con App Router. El cliente browser realiza `signInWithPassword` y `signOut`, mientras que el cliente server lee la misma sesión desde cookies. `src/proxy.ts` valida/refresca los claims para `/login` y `/dashboard`; no existe una copia manual del JWT en `localStorage`.
+
+El dashboard vuelve a validar la sesión en el servidor, obtiene el access token de la sesión actual y lo envía a NestJS exclusivamente como `Authorization: Bearer <token>` al consultar `/auth/me`. Los nombres, estado y roles mostrados proceden de NestJS/PostgreSQL, no de valores de autorización guardados en el navegador.
+
+Si no hay sesión, `/dashboard` redirige a `/login`. Si NestJS rechaza el JWT, la ruta `/auth/logout` invalida la sesión Supabase y limpia sus cookies antes de redirigir. Un fallo de red o backend muestra un estado indisponible y no conserva un dashboard con información anterior.
+
+El bundle sólo utiliza `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `NEXT_PUBLIC_API_URL`. Las credenciales administrativas y de base de datos no forman parte del frontend.
