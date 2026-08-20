@@ -15,6 +15,7 @@ import { PatientsService } from './../src/patients/patients.service';
 import { GuardiansService } from './../src/guardians/guardians.service';
 import { IncubatorsService } from './../src/incubators/incubators.service';
 import { AdmissionsService } from './../src/admissions/admissions.service';
+import { DevicesService } from './../src/devices/devices.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -62,6 +63,25 @@ describe('AppController (e2e)', () => {
     status: 'ACTIVE',
   };
   const admissionId = '00000000-0000-4000-8000-000000000010';
+  const deviceId = '00000000-0000-4000-8000-000000000011';
+  const device = {
+    id: deviceId,
+    hardwareUid: 'A4-C1-38-01',
+    code: 'ESP32-001',
+    deviceType: 'ESP32',
+    incubatorId,
+    status: 'ACTIVE',
+    firmwareVersion: '1.0.0',
+    lastSeenAt: null,
+    notes: null,
+    incubator: {
+      id: incubatorId,
+      code: incubator.code,
+      name: incubator.name,
+      location: incubator.location,
+      status: incubator.status,
+    },
+  };
   const admission = {
     id: admissionId,
     patientId,
@@ -237,6 +257,17 @@ describe('AppController (e2e)', () => {
           status: 'DISCHARGED',
           dischargedAt: '2026-08-20T22:15:00.000Z',
         }),
+      })
+      .overrideProvider(DevicesService)
+      .useValue({
+        create: jest.fn().mockResolvedValue(device),
+        findAll: jest.fn().mockResolvedValue([device]),
+        findOne: jest.fn((id: string) =>
+          id === deviceId
+            ? Promise.resolve(device)
+            : Promise.reject(new NotFoundException('Device not found')),
+        ),
+        findForIncubator: jest.fn().mockResolvedValue([device]),
       })
       .compile();
 
@@ -670,6 +701,81 @@ describe('AppController (e2e)', () => {
       .set('Authorization', 'Bearer doctor-token')
       .send({ dischargedAt: '2026-08-20T18:15:00-04:00', status: 'DISCHARGED' })
       .expect(201));
+
+  const deviceInput = {
+    hardwareUid: 'A4-C1-38-01',
+    code: 'ESP32-001',
+    deviceType: 'ESP32',
+    incubatorId,
+    firmwareVersion: '1.0.0',
+  };
+  it('POST /devices requires JWT', () =>
+    request(app.getHttpServer())
+      .post('/devices')
+      .send(deviceInput)
+      .expect(401));
+  it.each(['doctor-token', 'nurse-token'])(
+    'POST /devices rejects %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/devices')
+        .set('Authorization', `Bearer ${token}`)
+        .send(deviceInput)
+        .expect(403),
+  );
+  it.each(['admin-token', 'technician-token'])(
+    'POST /devices allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/devices')
+        .set('Authorization', `Bearer ${token}`)
+        .send(deviceInput)
+        .expect(201)
+        .expect(device),
+  );
+  it('POST /devices rejects status', () =>
+    request(app.getHttpServer())
+      .post('/devices')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ ...deviceInput, status: 'ACTIVE' })
+      .expect(400));
+  it('POST /devices rejects lastSeenAt', () =>
+    request(app.getHttpServer())
+      .post('/devices')
+      .set('Authorization', 'Bearer technician-token')
+      .send({ ...deviceInput, lastSeenAt: new Date().toISOString() })
+      .expect(400));
+  it.each(['admin-token', 'doctor-token', 'nurse-token', 'technician-token'])(
+    'GET /devices allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get('/devices?deviceType=ESP32')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([device]),
+  );
+  it('GET /devices validates UUID', () =>
+    request(app.getHttpServer())
+      .get('/devices/bad')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400));
+  it('GET /devices returns 404', () =>
+    request(app.getHttpServer())
+      .get('/devices/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(404));
+  it('GET /devices detail', () =>
+    request(app.getHttpServer())
+      .get(`/devices/${deviceId}`)
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect(device));
+  it('GET incubator devices', () =>
+    request(app.getHttpServer())
+      .get(`/incubators/${incubatorId}/devices`)
+      .set('Authorization', 'Bearer technician-token')
+      .expect(200)
+      .expect([device]));
 
   afterEach(async () => {
     await app.close();

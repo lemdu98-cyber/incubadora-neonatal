@@ -37,4 +37,4 @@ El frontend se comunica exclusivamente con NestJS y no guarda datos en Web Stora
 
 ## Límites de esta etapa
 
-No existe paciente actual, historial de ocupación, Admissions, Devices, sensores, MQTT, telemetría, alarmas ni control físico. Esas capacidades no deben inferirse a partir del estado administrativo `IN_USE`.
+El detalle muestra los dispositivos administrativos asociados. No existen sensores, MQTT, telemetría, alarmas ni control físico, y esas capacidades no deben inferirse a partir de un dispositivo `ACTIVE`.

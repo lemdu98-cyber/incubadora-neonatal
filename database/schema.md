@@ -1,6 +1,6 @@
 # Modelo de datos propuesto
 
-> Estado: identidad, pacientes, tutores, relaciones paciente–tutor e inventario de incubadoras ya están desplegados mediante migraciones Prisma. Admissions, dispositivos, sensores, telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
+> Estado: identidad, pacientes, tutores, relaciones paciente–tutor, incubadoras, Admissions y Devices están desplegados mediante migraciones Prisma. Sensores, telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
 
 ## Criterios generales
 
@@ -22,8 +22,8 @@ Los siguientes valores son candidatos a enums PostgreSQL o restricciones `CHECK`
 | `patient_sex` | `MALE`, `FEMALE`, `UNSPECIFIED` |
 | `incubator_status` | `AVAILABLE`, `IN_USE`, `MAINTENANCE`, `OUT_OF_SERVICE` |
 | `admission_status` | `ACTIVE`, `DISCHARGED`, `TRANSFERRED`, `CANCELLED` |
-| `device_type` | `ESP32`, `ESP8266` |
-| `device_status` | `PROVISIONING`, `ONLINE`, `OFFLINE`, `MAINTENANCE`, `RETIRED` |
+| `device_type` | `ESP32`, `ESP8266`, `OTHER` |
+| `device_status` | `ACTIVE`, `MAINTENANCE`, `DISABLED` |
 | `sensor_type` | `DHT11`, `DHT22`, `MAX30100`, `MAX30205`, `OTHER` |
 | `sensor_status` | `ACTIVE`, `FAULT`, `CALIBRATION`, `INACTIVE` |
 | `alarm_parameter` | `BODY_TEMPERATURE`, `AIR_TEMPERATURE`, `HUMIDITY`, `SPO2`, `HEART_RATE` |
@@ -161,17 +161,18 @@ Crear un ingreso y cambiar la incubadora de `AVAILABLE` a `IN_USE` ocurre en una
 | Columna | Tipo | Reglas |
 |---|---|---|
 | `id` | `uuid` | PK; default UUID |
-| `hardware_uid` | `varchar(128)` | UNIQUE; identidad aprovisionada, no el `deviceId` del payload |
+| `hardware_uid` | `varchar(100)` | UNIQUE; identificador físico normalizado a mayúsculas |
 | `code` | `varchar(50)` | UNIQUE; etiqueta operativa |
 | `device_type` | `device_type` | tipo de microcontrolador |
-| `incubator_id` | `uuid` | nullable durante aprovisionamiento; FK `incubators(id)` |
-| `status` | `device_status` | default `PROVISIONING` |
+| `incubator_id` | `uuid` | FK obligatoria `incubators(id)` |
+| `status` | `device_status` | default `ACTIVE`; sólo administrado por backend |
 | `firmware_version` | `varchar(50)` | nullable |
 | `last_seen_at` | `timestamptz` | nullable |
+| `notes` | `text` | nullable; observaciones técnicas |
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-La FK de incubadora usa `ON DELETE RESTRICT`. Índices por `hardware_uid` (cubierto por UNIQUE), `incubator_id` y `status`. La identidad MQTT deberá mapearse a `hardware_uid` mediante credenciales/certificado, nunca confiar sólo en el JSON.
+La FK de incubadora usa `ON DELETE RESTRICT`. Hay UNIQUE sobre `hardware_uid` y `code`, e índices por `incubator_id`, `status` y creación descendente. `last_seen_at` queda nulo al registrar el dispositivo y no puede fijarse desde el frontend. MQTT aún no está implementado.
 
 ### `sensors`
 

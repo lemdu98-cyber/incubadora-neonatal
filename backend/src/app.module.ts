@@ -12,6 +12,7 @@ import { PatientsModule } from './patients/patients.module';
 import { GuardiansModule } from './guardians/guardians.module';
 import { IncubatorsModule } from './incubators/incubators.module';
 import { AdmissionsModule } from './admissions/admissions.module';
+import { DevicesModule } from './devices/devices.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AdmissionsModule } from './admissions/admissions.module';
     }),
     AuthModule,
     AdmissionsModule,
+    DevicesModule,
     DatabaseModule,
     HealthModule,
     GuardiansModule,

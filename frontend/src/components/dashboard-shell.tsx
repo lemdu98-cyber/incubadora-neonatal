@@ -7,9 +7,11 @@ type Props = { user: CurrentUser; backendConnected: boolean; databaseConnected: 
 export function DashboardShell({ user, backendConnected, databaseConnected }: Props) {
   const name = user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email;
   const admin = user.roles.includes("ADMIN");
+  const deviceManager = admin || user.roles.includes("TECHNICIAN");
   const modules = [
     { name: "Pacientes" },
     { name: "Incubadoras", href: "/incubators" },
+    ...(deviceManager ? [{ name: "Dispositivos", href: "/devices" }] : []),
     { name: "Alarmas" },
     ...(admin ? [{ name: "Usuarios" }] : []),
     { name: "Reportes" },

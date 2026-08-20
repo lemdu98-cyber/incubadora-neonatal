@@ -43,3 +43,6 @@ export async function requireIncubatorCreator() {
   if (!context.user.roles.some((role) => ['ADMIN', 'TECHNICIAN'].includes(role))) redirect('/incubators');
   return context;
 }
+
+export async function requireDeviceReader(){return requireIncubatorReader()}
+export async function requireDeviceCreator(){const context=await requireAuthenticated();if(!context.user.roles.some(role=>['ADMIN','TECHNICIAN'].includes(role)))redirect('/devices');return context}

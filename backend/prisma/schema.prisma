@@ -76,6 +76,22 @@ enum AdmissionStatus {
   @@map("admission_status")
 }
 
+enum DeviceType {
+  ESP32
+  ESP8266
+  OTHER
+
+  @@map("device_type")
+}
+
+enum DeviceStatus {
+  ACTIVE
+  MAINTENANCE
+  DISABLED
+
+  @@map("device_status")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -178,10 +194,31 @@ model Incubator {
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   admissions   Admission[]
+  devices      Device[]
 
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("incubators")
+}
+
+model Device {
+  id              String       @id @default(uuid()) @db.Uuid
+  hardwareUid     String       @unique @map("hardware_uid") @db.VarChar(100)
+  code            String       @unique @db.VarChar(50)
+  deviceType      DeviceType   @map("device_type")
+  incubatorId     String       @map("incubator_id") @db.Uuid
+  status          DeviceStatus @default(ACTIVE)
+  firmwareVersion String?      @map("firmware_version") @db.VarChar(50)
+  lastSeenAt      DateTime?    @map("last_seen_at") @db.Timestamptz(6)
+  notes           String?      @db.Text
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  incubator       Incubator    @relation(fields: [incubatorId], references: [id], onDelete: Restrict)
+
+  @@index([incubatorId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("devices")
 }
 
 model Admission {

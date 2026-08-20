@@ -3,18 +3,20 @@ import type { ReactNode } from "react";
 import type { CurrentUser } from "@/lib/api";
 import { LogoutButton } from "./logout-button";
 
-type Props = { user: CurrentUser; children: ReactNode; active?: "dashboard" | "users" | "patients" | "guardians" | "incubators" | "admissions" };
+type Props = { user: CurrentUser; children: ReactNode; active?: "dashboard" | "users" | "patients" | "guardians" | "incubators" | "admissions" | "devices" };
 
 export function AppShell({ user, children, active }: Props) {
   const name = user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email;
   const admin = user.roles.includes("ADMIN");
   const clinical = user.roles.some((role) => ["ADMIN", "DOCTOR", "NURSE"].includes(role));
+  const technical = user.roles.some((role) => ["ADMIN", "TECHNICIAN"].includes(role));
   const nav = [
     { label: "Dashboard", href: "/dashboard", enabled: true, key: "dashboard" },
     ...(clinical ? [{ label: "Pacientes", href: "/patients", enabled: true, key: "patients" }] : []),
     ...(clinical ? [{ label: "Tutores", href: "/guardians", enabled: true, key: "guardians" }] : []),
     ...(clinical ? [{ label: "Ingresos", href: "/admissions", enabled: true, key: "admissions" }] : []),
     { label: "Incubadoras", href: "/incubators", enabled: true, key: "incubators" },
+    ...(technical ? [{ label: "Dispositivos", href: "/devices", enabled: true, key: "devices" }] : []),
     { label: "Alarmas", enabled: false },
     ...(admin ? [{ label: "Usuarios", href: "/users", enabled: true, key: "users" }] : []),
     { label: "Reportes", enabled: false },

@@ -8,7 +8,9 @@ import {
   getIncubator,
   getIncubatorActiveAdmission,
   getIncubatorAdmissions,
+  getIncubatorDevices,
   type Admission,
+  type Device,
   type Incubator,
 } from "@/lib/api";
 import { requireIncubatorReader } from "@/lib/auth-context";
@@ -28,14 +30,15 @@ export async function loadIncubatorDetail(
   // The incubator is the required resource. Admission data is supplementary and
   // must not hide a valid incubator when that module is temporarily unavailable.
   const incubator = await getIncubator(id, accessToken);
-  const [activeResult, historyResult] = await Promise.allSettled([
+  const [activeResult, historyResult, devicesResult] = await Promise.allSettled([
     getIncubatorActiveAdmission(id, accessToken),
     includeHistory
       ? getIncubatorAdmissions(id, accessToken)
       : Promise.resolve([]),
+    getIncubatorDevices(id, accessToken),
   ]);
 
-  for (const result of [activeResult, historyResult]) {
+  for (const result of [activeResult, historyResult, devicesResult]) {
     if (
       result.status === "rejected" &&
       result.reason instanceof ApiError &&
@@ -53,6 +56,8 @@ export async function loadIncubatorDetail(
       historyResult.status === "fulfilled" ? historyResult.value : [],
     admissionsUnavailable:
       activeResult.status === "rejected" || historyResult.status === "rejected",
+    devices: devicesResult.status === "fulfilled" ? devicesResult.value : [],
+    devicesUnavailable: devicesResult.status === "rejected",
   };
 }
 
@@ -87,7 +92,7 @@ export default async function IncubatorDetailPage({
   }
   return (
     <AppShell user={user} active="incubators">
-      <IncubatorDetails {...detail} />
+      <IncubatorDetails {...detail} canManageDevices={user.roles.some((role) => ["ADMIN", "TECHNICIAN"].includes(role))} />
     </AppShell>
   );
 }
@@ -97,11 +102,17 @@ export function IncubatorDetails({
   activeAdmission = null,
   admissions = [],
   admissionsUnavailable = false,
+  devices = [],
+  devicesUnavailable = false,
+  canManageDevices = false,
 }: {
   incubator: Incubator;
   activeAdmission?: Admission | null;
   admissions?: Admission[];
   admissionsUnavailable?: boolean;
+  devices?: Device[];
+  devicesUnavailable?: boolean;
+  canManageDevices?: boolean;
 }) {
   const values = [
     ["Código", incubator.code],
@@ -166,6 +177,10 @@ export function IncubatorDetails({
             ))}
           </div>
         )}
+      </section>
+      <section className="mt-8">
+        <div className="flex items-center justify-between"><h2 className="text-xl font-bold">Dispositivos</h2>{canManageDevices&&<Link className="rounded-xl bg-cyan-700 px-4 py-2 font-semibold text-white" href={`/devices/new?incubatorId=${incubator.id}`}>Registrar dispositivo</Link>}</div>
+        {devicesUnavailable?<p role="status" className="mt-4">La información de dispositivos no está disponible temporalmente.</p>:devices.length===0?<p className="mt-4">Sin dispositivos asociados.</p>:<div className="mt-4 space-y-3">{devices.map((device)=><article className="rounded-xl border bg-white p-4" key={device.id}><Link className="font-bold text-cyan-700" href={`/devices/${device.id}`}>{device.code}</Link><p>{device.deviceType} · {device.status} · {device.firmwareVersion??'Firmware no registrado'} · {device.lastSeenAt?format(device.lastSeenAt):'Sin comunicación registrada'}</p></article>)}</div>}
       </section>
     </>
   );

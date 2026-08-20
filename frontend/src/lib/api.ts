@@ -3,6 +3,7 @@ import type { BloodType, PatientSex, PatientStatus } from "@/lib/patient-options
 import type { GuardianRelationship } from "@/lib/guardian-options";
 import type { IncubatorStatus } from "@/lib/incubator-options";
 import type { AdmissionStatus } from "@/lib/admission-options";
+import type { DeviceStatus, DeviceType } from "@/lib/device-options";
 
 export type CurrentUser = {
   id: string;
@@ -51,6 +52,8 @@ export type CreateIncubatorInput = Pick<Incubator, "code" | "name" | "location">
 export type Admission = { id:string; patientId:string; incubatorId:string; admittedAt:string; dischargedAt:string|null; status:AdmissionStatus; notes:string|null; createdAt?:string; updatedAt?:string; patient:{id:string;medicalRecordNumber:string;firstName:string;lastName:string}; incubator:{id:string;code:string;name:string;location:string;status:IncubatorStatus} };
 export type CreateAdmissionInput = { patientId:string; incubatorId:string; admittedAt:string; notes?:string };
 export type DischargeAdmissionInput = { dischargedAt:string; status:Exclude<AdmissionStatus,"ACTIVE"> };
+export type Device={id:string;hardwareUid:string;code:string;deviceType:DeviceType;incubatorId:string;status:DeviceStatus;firmwareVersion:string|null;lastSeenAt:string|null;notes:string|null;createdAt:string;updatedAt:string;incubator:{id:string;code:string;name:string;location:string;status:IncubatorStatus}};
+export type CreateDeviceInput={hardwareUid:string;code:string;deviceType:DeviceType;incubatorId:string;firmwareVersion?:string;notes?:string};
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -119,6 +122,10 @@ export function getPatientAdmissions(id:string,accessToken:string){return protec
 export function getPatientActiveAdmission(id:string,accessToken:string){return protectedRequest<Admission|null>(`/patients/${encodeURIComponent(id)}/active-admission`,accessToken)}
 export function getIncubatorAdmissions(id:string,accessToken:string){return protectedRequest<Admission[]>(`/incubators/${encodeURIComponent(id)}/admissions`,accessToken)}
 export function getIncubatorActiveAdmission(id:string,accessToken:string){return protectedRequest<Admission|null>(`/incubators/${encodeURIComponent(id)}/active-admission`,accessToken)}
+export function getDevices(accessToken:string,filters?:{incubatorId?:string;deviceType?:DeviceType;status?:DeviceStatus}){const query=new URLSearchParams(Object.entries(filters??{}).filter((entry):entry is[string,string]=>Boolean(entry[1])));return protectedRequest<Device[]>(`/devices${query.size?`?${query}`:''}`,accessToken)}
+export function getDevice(id:string,accessToken:string){return protectedRequest<Device>(`/devices/${encodeURIComponent(id)}`,accessToken)}
+export function createDevice(data:CreateDeviceInput,accessToken:string){return protectedRequest<Device>('/devices',accessToken,{method:'POST',body:JSON.stringify(data)})}
+export function getIncubatorDevices(id:string,accessToken:string){return protectedRequest<Device[]>(`/incubators/${encodeURIComponent(id)}/devices`,accessToken)}
 
 export async function getHealth() {
   try {
