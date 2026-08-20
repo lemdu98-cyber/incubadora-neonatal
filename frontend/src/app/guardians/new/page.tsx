@@ -1,0 +1,1 @@
+import {AppShell} from '@/components/app-shell';import {requireClinicalRole} from '@/lib/auth-context';import {GuardianForm} from '../guardian-form';export default async function Page(){const{user}=await requireClinicalRole();return <AppShell user={user} active="guardians"><h1 className="text-3xl font-bold">Nuevo tutor</h1><GuardianForm/></AppShell>}

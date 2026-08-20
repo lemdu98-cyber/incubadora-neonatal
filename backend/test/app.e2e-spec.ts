@@ -12,6 +12,7 @@ import { JwtVerificationService } from './../src/auth/services/jwt-verification.
 import { ProfilesService } from './../src/profiles/profiles.service';
 import { UsersService } from './../src/users/users.service';
 import { PatientsService } from './../src/patients/patients.service';
+import { GuardiansService } from './../src/guardians/guardians.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -22,6 +23,16 @@ describe('AppController (e2e)', () => {
   const doctorId = '00000000-0000-4000-8000-000000000005';
   const nurseId = '00000000-0000-4000-8000-000000000006';
   const patientId = '00000000-0000-4000-8000-000000000007';
+  const guardianId = '00000000-0000-4000-8000-000000000008';
+  const guardian = {
+    id: guardianId,
+    firstName: 'Maria',
+    lastName: 'Perez',
+    documentNumber: null,
+    phone: '+59170000000',
+    email: 'maria@example.com',
+    address: null,
+  };
   const patient = {
     id: patientId,
     medicalRecordNumber: 'RN-2026-000001',
@@ -127,6 +138,38 @@ describe('AppController (e2e)', () => {
           id === patientId
             ? Promise.resolve(patient)
             : Promise.reject(new NotFoundException('Patient not found')),
+        ),
+      })
+      .overrideProvider(GuardiansService)
+      .useValue({
+        create: jest.fn().mockResolvedValue(guardian),
+        findAll: jest.fn().mockResolvedValue([guardian]),
+        findOne: jest.fn((id: string) =>
+          id === guardianId
+            ? Promise.resolve(guardian)
+            : Promise.reject(new NotFoundException('Guardian not found')),
+        ),
+        findForPatient: jest
+          .fn()
+          .mockResolvedValue([
+            { ...guardian, relationship: 'MOTHER', isPrimaryContact: true },
+          ]),
+        link: jest.fn().mockResolvedValue({
+          patientId,
+          guardianId,
+          relationship: 'MOTHER',
+          isPrimaryContact: true,
+          guardian,
+        }),
+        createAndLink: jest.fn().mockResolvedValue({
+          ...guardian,
+          relationship: 'MOTHER',
+          isPrimaryContact: true,
+        }),
+        unlink: jest.fn((_: string, id: string) =>
+          id === guardianId
+            ? Promise.resolve({ status: 'ok' })
+            : Promise.reject(new NotFoundException('Relationship not found')),
         ),
       })
       .compile();
@@ -341,6 +384,65 @@ describe('AppController (e2e)', () => {
       .set('Authorization', 'Bearer nurse-token')
       .expect(200)
       .expect(patient));
+
+  it('POST /guardians requires JWT', () =>
+    request(app.getHttpServer()).post('/guardians').expect(401));
+  it('GET /guardians rejects TECHNICIAN', () =>
+    request(app.getHttpServer())
+      .get('/guardians')
+      .set('Authorization', 'Bearer technician-token')
+      .expect(403));
+  it('POST /guardians validates DTO', () =>
+    request(app.getHttpServer())
+      .post('/guardians')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ email: 'bad' })
+      .expect(400));
+  it('POST /guardians creates guardian', () =>
+    request(app.getHttpServer())
+      .post('/guardians')
+      .set('Authorization', 'Bearer nurse-token')
+      .send({
+        firstName: 'Maria',
+        lastName: 'Perez',
+        email: 'MARIA@example.com',
+      })
+      .expect(201)
+      .expect(guardian));
+  it('GET /guardians lists guardians', () =>
+    request(app.getHttpServer())
+      .get('/guardians')
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(200)
+      .expect([guardian]));
+  it('GET /guardians/:id returns 404', () =>
+    request(app.getHttpServer())
+      .get('/guardians/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(404));
+  it('POST relation validates relationship', () =>
+    request(app.getHttpServer())
+      .post(`/patients/${patientId}/guardians`)
+      .set('Authorization', 'Bearer admin-token')
+      .send({ guardianId, relationship: 'INVALID', isPrimaryContact: true })
+      .expect(400));
+  it('POST relation links guardian', () =>
+    request(app.getHttpServer())
+      .post(`/patients/${patientId}/guardians`)
+      .set('Authorization', 'Bearer doctor-token')
+      .send({ guardianId, relationship: 'MOTHER', isPrimaryContact: true })
+      .expect(201));
+  it('GET patient guardians lists links', () =>
+    request(app.getHttpServer())
+      .get(`/patients/${patientId}/guardians`)
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(200));
+  it('DELETE relation unlinks only relationship', () =>
+    request(app.getHttpServer())
+      .delete(`/patients/${patientId}/guardians/${guardianId}`)
+      .set('Authorization', 'Bearer admin-token')
+      .expect(200)
+      .expect({ status: 'ok' }));
 
   afterEach(async () => {
     await app.close();

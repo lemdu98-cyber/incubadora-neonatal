@@ -1,5 +1,6 @@
 import { getPublicEnv } from "@/lib/env";
 import type { BloodType, PatientSex, PatientStatus } from "@/lib/patient-options";
+import type { GuardianRelationship } from "@/lib/guardian-options";
 
 export type CurrentUser = {
   id: string;
@@ -32,6 +33,11 @@ export type Patient = {
   status: PatientStatus; createdAt: string; updatedAt: string;
 };
 export type CreatePatientInput = Omit<Patient, "id" | "status" | "createdAt" | "updatedAt" | "birthTime"> & { birthTime?: string };
+export type Guardian = { id:string; firstName:string; lastName:string; documentNumber:string|null; phone:string|null; email:string|null; address:string|null; createdAt?:string; updatedAt?:string; patients?: Array<{relationship:GuardianRelationship;isPrimaryContact:boolean;patient:Patient}> };
+export type CreateGuardianInput = { firstName:string; lastName:string; documentNumber?:string; phone?:string; email?:string; address?:string };
+export type PatientGuardian = Guardian & { relationship:GuardianRelationship; isPrimaryContact:boolean; linkedAt?:string };
+export type LinkGuardianInput = { guardianId:string; relationship:GuardianRelationship; isPrimaryContact:boolean };
+export type CreateAndLinkGuardianInput = { guardian:CreateGuardianInput; relationship:GuardianRelationship; isPrimaryContact:boolean };
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -82,6 +88,13 @@ export function getPatient(id: string, accessToken: string) { return protectedRe
 export function createPatient(data: CreatePatientInput, accessToken: string) {
   return protectedRequest<Patient>("/patients", accessToken, { method: "POST", body: JSON.stringify(data) });
 }
+export function getGuardians(accessToken:string){return protectedRequest<Guardian[]>('/guardians',accessToken);}
+export function getGuardian(id:string,accessToken:string){return protectedRequest<Guardian>(`/guardians/${encodeURIComponent(id)}`,accessToken);}
+export function createGuardian(data:CreateGuardianInput,accessToken:string){return protectedRequest<Guardian>('/guardians',accessToken,{method:'POST',body:JSON.stringify(data)});}
+export function getPatientGuardians(patientId:string,accessToken:string){return protectedRequest<PatientGuardian[]>(`/patients/${encodeURIComponent(patientId)}/guardians`,accessToken);}
+export function linkGuardian(patientId:string,data:LinkGuardianInput,accessToken:string){return protectedRequest<PatientGuardian>(`/patients/${encodeURIComponent(patientId)}/guardians`,accessToken,{method:'POST',body:JSON.stringify(data)});}
+export function createAndLinkGuardian(patientId:string,data:CreateAndLinkGuardianInput,accessToken:string){return protectedRequest<PatientGuardian>(`/patients/${encodeURIComponent(patientId)}/guardians/new`,accessToken,{method:'POST',body:JSON.stringify(data)});}
+export function unlinkGuardian(patientId:string,guardianId:string,accessToken:string){return protectedRequest<{status:string}>(`/patients/${encodeURIComponent(patientId)}/guardians/${encodeURIComponent(guardianId)}`,accessToken,{method:'DELETE'});}
 
 export async function getHealth() {
   try {

@@ -47,6 +47,17 @@ enum PatientStatus {
   @@map("patient_status")
 }
 
+enum GuardianRelationship {
+  MOTHER
+  FATHER
+  LEGAL_GUARDIAN
+  GRANDMOTHER
+  GRANDFATHER
+  OTHER
+
+  @@map("guardian_relationship")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -98,7 +109,39 @@ model Patient {
   status               PatientStatus @default(ACTIVE)
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  guardians            PatientGuardian[]
 
   @@index([createdAt(sort: Desc)])
   @@map("patients")
+}
+
+model Guardian {
+  id             String            @id @default(uuid()) @db.Uuid
+  firstName      String            @map("first_name") @db.VarChar(100)
+  lastName       String            @map("last_name") @db.VarChar(100)
+  documentNumber String?           @map("document_number") @db.VarChar(80)
+  phone          String?           @db.VarChar(40)
+  email          String?           @db.VarChar(254)
+  address        String?           @db.Text
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  patients       PatientGuardian[]
+
+  @@index([documentNumber])
+  @@index([createdAt(sort: Desc)])
+  @@map("guardians")
+}
+
+model PatientGuardian {
+  patientId       String               @map("patient_id") @db.Uuid
+  guardianId      String               @map("guardian_id") @db.Uuid
+  relationship    GuardianRelationship
+  isPrimaryContact Boolean             @default(false) @map("is_primary_contact")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  patient         Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  guardian        Guardian             @relation(fields: [guardianId], references: [id], onDelete: Restrict)
+
+  @@id([patientId, guardianId])
+  @@index([guardianId])
+  @@map("patient_guardians")
 }

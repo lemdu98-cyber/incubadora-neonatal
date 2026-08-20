@@ -99,14 +99,14 @@ Se adopta la tabla puente en vez de `profiles.role_id`: soporta varios roles, ev
 | `id` | `uuid` | PK; default UUID |
 | `first_name` | `varchar(100)` | no vacío |
 | `last_name` | `varchar(100)` | no vacío |
+| `document_number` | `varchar(80)` | nullable; índice no único |
 | `phone` | `varchar(30)` | nullable; formato normalizado |
 | `email` | `varchar(254)` | nullable; comparar en minúsculas |
 | `address` | `text` | nullable |
-| `status` | `varchar(20)` | default `ACTIVE`; `CHECK` provisional |
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-No se impone UNIQUE global en teléfono o correo porque familiares pueden compartirlos. La relación (`MOTHER`, `FATHER`, `LEGAL_GUARDIAN`, etc.) pertenece a la asociación con cada paciente.
+No se impone UNIQUE global en documento, teléfono o correo: faltan tipo/país de documento y pueden compartirse contactos familiares. Una etapa futura puede añadir `document_type` y `document_country`. La relación pertenece a la asociación con cada paciente.
 
 ### `patient_guardians`
 
@@ -114,13 +114,11 @@ No se impone UNIQUE global en teléfono o correo porque familiares pueden compar
 |---|---|---|
 | `patient_id` | `uuid` | PK parcial; FK `patients(id)` |
 | `guardian_id` | `uuid` | PK parcial; FK `guardians(id)` |
-| `relationship_type` | `varchar(40)` | no vacío; catálogo por definir |
+| `relationship` | `guardian_relationship` | `MOTHER`, `FATHER`, `LEGAL_GUARDIAN`, `GRANDMOTHER`, `GRANDFATHER`, `OTHER` |
 | `is_primary_contact` | `boolean` | default `false` |
-| `is_legal_guardian` | `boolean` | default `false` |
 | `created_at` | `timestamptz` | default `now()` |
-| `updated_at` | `timestamptz` | default `now()` |
 
-PK compuesta (`patient_id`, `guardian_id`). Ambas FK usan `ON DELETE RESTRICT`; se conserva el historial y se desactiva lógicamente. Índice por `guardian_id`. Puede añadirse un índice único parcial para un solo contacto principal por paciente si la regla de negocio lo confirma.
+PK compuesta (`patient_id`, `guardian_id`). Paciente usa `ON DELETE CASCADE`; tutor usa `ON DELETE RESTRICT`. Un índice único parcial por `patient_id WHERE is_primary_contact = true` garantiza como máximo un contacto principal, complementado por reemplazo transaccional en NestJS.
 
 ### `incubators`
 

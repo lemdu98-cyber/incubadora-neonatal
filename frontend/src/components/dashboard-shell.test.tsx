@@ -30,4 +30,9 @@ describe("Dashboard", () => {
     render(<DashboardShell user={{ ...user, roles: ["DOCTOR"] }} backendConnected databaseConnected />);
     expect(screen.queryByText("Usuarios")).not.toBeInTheDocument();
   });
+  it("oculta Pacientes y Tutores para TECHNICIAN", () => {
+    render(<DashboardShell user={{ ...user, roles: ["TECHNICIAN"] }} backendConnected databaseConnected />);
+    expect(screen.queryByRole("link", { name: "Pacientes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Tutores" })).not.toBeInTheDocument();
+  });
 });

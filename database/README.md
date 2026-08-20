@@ -1,6 +1,6 @@
 # Base de datos
 
-Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. La infraestructura de identidad está desplegada y la migración aditiva de `patients` está preparada para revisión/despliegue.
+Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad y pacientes están desplegados; la migración aditiva de tutores y relaciones paciente-tutor está versionada.
 
 ## Conectividad implementada
 

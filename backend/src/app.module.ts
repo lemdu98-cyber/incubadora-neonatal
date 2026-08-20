@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { PatientsModule } from './patients/patients.module';
+import { GuardiansModule } from './guardians/guardians.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PatientsModule } from './patients/patients.module';
     AuthModule,
     DatabaseModule,
     HealthModule,
+    GuardiansModule,
     PatientsModule,
     UsersModule,
   ],
