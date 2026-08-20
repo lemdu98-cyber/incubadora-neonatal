@@ -7,7 +7,7 @@
 - **PostgreSQL** es la fuente de verdad para perfiles y roles de aplicación.
 - **Next.js** enviará el token en `Authorization: Bearer <access_token>`; no decidirá permisos por sí solo.
 
-No existe registro público. La futura creación de cuentas será una operación administrativa para `ADMIN`, `DOCTOR`, `NURSE` o `TECHNICIAN`.
+No existe registro público. La creación de cuentas es una operación exclusiva de un usuario con rol `ADMIN`; los roles asignables son `ADMIN`, `DOCTOR`, `NURSE` y `TECHNICIAN`.
 
 ## Verificación JWT
 
@@ -27,7 +27,17 @@ El proyecto actualmente publica una clave asimétrica ES256. Si se cambiara a la
 
 `profiles.id` coincide exactamente con `auth.users.id`, tomado del claim verificado `sub`. `ProfilesService` carga el perfil y los roles mediante `user_roles`; nunca acepta identidad o roles desde el body del cliente.
 
-Se eligió crear perfiles desde el backend después de una futura alta administrativa, no mediante trigger. Esa operación deberá crear el usuario de Supabase Auth y luego hacer un `upsert` idempotente de `profiles` con el mismo UUID, asignando roles en una operación controlada y auditada. Esta etapa todavía no implementa creación de cuentas ni perfiles automáticos.
+Se eligió crear perfiles desde el backend después del alta administrativa, no mediante trigger. `POST /users` crea primero el usuario en Supabase Auth y luego crea `profiles` y `user_roles` en una única operación de Prisma. Si falla la persistencia, elimina como compensación el usuario recién creado en Auth. Si también falla esa limpieza, registra únicamente el UUID afectado y devuelve un error que exige intervención manual.
+
+El correo sigue siendo propiedad de Supabase Auth y no se duplica en `profiles`. `GET /users` y `GET /users/:id` lo resuelven mediante la API administrativa. Los tres endpoints `/users` requieren JWT válido y rol `ADMIN` obtenido de PostgreSQL.
+
+La contraseña temporal se genera con entropía criptográfica, se entrega sólo en la respuesta exitosa de creación y no se registra ni persiste en tablas de aplicación. Es una solución transitoria; una futura entrega por invitación requerirá configurar previamente URL de redirección y plantilla de correo. Aún no existen edición, eliminación, restablecimiento de contraseña ni frontend para este flujo.
+
+## Primer administrador
+
+El bootstrap es deliberadamente manual y no forma parte del arranque ni del seed. Sólo puede ejecutarse cuando no existe ninguna asignación `ADMIN` y exige la confirmación `BOOTSTRAP_ADMIN_CONFIRM=CREATE_FIRST_ADMIN`, además del correo, nombre y apellido en las variables `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_FIRST_NAME` y `BOOTSTRAP_ADMIN_LAST_NAME`.
+
+Se invoca manualmente con `npm run bootstrap:admin`. El comando muestra la contraseña temporal una sola vez; no debe ejecutarse en logs compartidos ni automatizaciones que conserven la salida. Este repositorio no ejecuta el bootstrap automáticamente.
 
 ## Flujo futuro del frontend
 
