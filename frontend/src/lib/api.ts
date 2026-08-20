@@ -1,6 +1,7 @@
 import { getPublicEnv } from "@/lib/env";
 import type { BloodType, PatientSex, PatientStatus } from "@/lib/patient-options";
 import type { GuardianRelationship } from "@/lib/guardian-options";
+import type { IncubatorStatus } from "@/lib/incubator-options";
 
 export type CurrentUser = {
   id: string;
@@ -38,6 +39,14 @@ export type CreateGuardianInput = { firstName:string; lastName:string; documentN
 export type PatientGuardian = Guardian & { relationship:GuardianRelationship; isPrimaryContact:boolean; linkedAt?:string };
 export type LinkGuardianInput = { guardianId:string; relationship:GuardianRelationship; isPrimaryContact:boolean };
 export type CreateAndLinkGuardianInput = { guardian:CreateGuardianInput; relationship:GuardianRelationship; isPrimaryContact:boolean };
+export type Incubator = {
+  id: string; code: string; name: string; location: string; serialNumber: string | null;
+  manufacturer: string | null; model: string | null; status: IncubatorStatus;
+  notes: string | null; createdAt: string; updatedAt: string;
+};
+export type CreateIncubatorInput = Pick<Incubator, "code" | "name" | "location"> & {
+  serialNumber?: string; manufacturer?: string; model?: string; notes?: string;
+};
 
 export class ApiError extends Error {
   constructor(public readonly status: number) {
@@ -95,6 +104,9 @@ export function getPatientGuardians(patientId:string,accessToken:string){return 
 export function linkGuardian(patientId:string,data:LinkGuardianInput,accessToken:string){return protectedRequest<PatientGuardian>(`/patients/${encodeURIComponent(patientId)}/guardians`,accessToken,{method:'POST',body:JSON.stringify(data)});}
 export function createAndLinkGuardian(patientId:string,data:CreateAndLinkGuardianInput,accessToken:string){return protectedRequest<PatientGuardian>(`/patients/${encodeURIComponent(patientId)}/guardians/new`,accessToken,{method:'POST',body:JSON.stringify(data)});}
 export function unlinkGuardian(patientId:string,guardianId:string,accessToken:string){return protectedRequest<{status:string}>(`/patients/${encodeURIComponent(patientId)}/guardians/${encodeURIComponent(guardianId)}`,accessToken,{method:'DELETE'});}
+export function getIncubators(accessToken: string) { return protectedRequest<Incubator[]>("/incubators", accessToken); }
+export function getIncubator(id: string, accessToken: string) { return protectedRequest<Incubator>(`/incubators/${encodeURIComponent(id)}`, accessToken); }
+export function createIncubator(data: CreateIncubatorInput, accessToken: string) { return protectedRequest<Incubator>("/incubators", accessToken, { method: "POST", body: JSON.stringify(data) }); }
 
 export async function getHealth() {
   try {

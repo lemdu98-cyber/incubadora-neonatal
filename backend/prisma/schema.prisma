@@ -58,6 +58,15 @@ enum GuardianRelationship {
   @@map("guardian_relationship")
 }
 
+enum IncubatorStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  OUT_OF_SERVICE
+
+  @@map("incubator_status")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -95,21 +104,21 @@ model UserRole {
 }
 
 model Patient {
-  id                   String        @id @default(uuid()) @db.Uuid
-  medicalRecordNumber  String        @unique @map("medical_record_number") @db.VarChar(50)
-  firstName            String        @map("first_name") @db.VarChar(100)
-  lastName             String        @map("last_name") @db.VarChar(100)
-  birthDate            DateTime      @map("birth_date") @db.Date
-  birthTime            DateTime?     @map("birth_time") @db.Time(0)
-  sex                  PatientSex
-  birthWeightGrams     Int           @map("birth_weight_grams")
-  gestationalAgeWeeks  Int           @map("gestational_age_weeks") @db.SmallInt
-  gestationalAgeDays   Int           @map("gestational_age_days") @db.SmallInt
-  bloodType            BloodType     @map("blood_type")
-  status               PatientStatus @default(ACTIVE)
-  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  guardians            PatientGuardian[]
+  id                  String            @id @default(uuid()) @db.Uuid
+  medicalRecordNumber String            @unique @map("medical_record_number") @db.VarChar(50)
+  firstName           String            @map("first_name") @db.VarChar(100)
+  lastName            String            @map("last_name") @db.VarChar(100)
+  birthDate           DateTime          @map("birth_date") @db.Date
+  birthTime           DateTime?         @map("birth_time") @db.Time(0)
+  sex                 PatientSex
+  birthWeightGrams    Int               @map("birth_weight_grams")
+  gestationalAgeWeeks Int               @map("gestational_age_weeks") @db.SmallInt
+  gestationalAgeDays  Int               @map("gestational_age_days") @db.SmallInt
+  bloodType           BloodType         @map("blood_type")
+  status              PatientStatus     @default(ACTIVE)
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  guardians           PatientGuardian[]
 
   @@index([createdAt(sort: Desc)])
   @@map("patients")
@@ -133,15 +142,33 @@ model Guardian {
 }
 
 model PatientGuardian {
-  patientId       String               @map("patient_id") @db.Uuid
-  guardianId      String               @map("guardian_id") @db.Uuid
-  relationship    GuardianRelationship
-  isPrimaryContact Boolean             @default(false) @map("is_primary_contact")
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  patient         Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  guardian        Guardian             @relation(fields: [guardianId], references: [id], onDelete: Restrict)
+  patientId        String               @map("patient_id") @db.Uuid
+  guardianId       String               @map("guardian_id") @db.Uuid
+  relationship     GuardianRelationship
+  isPrimaryContact Boolean              @default(false) @map("is_primary_contact")
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  patient          Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  guardian         Guardian             @relation(fields: [guardianId], references: [id], onDelete: Restrict)
 
   @@id([patientId, guardianId])
   @@index([guardianId])
   @@map("patient_guardians")
+}
+
+model Incubator {
+  id           String          @id @default(uuid()) @db.Uuid
+  code         String          @unique @db.VarChar(50)
+  name         String          @db.VarChar(120)
+  location     String          @db.VarChar(150)
+  serialNumber String?         @unique @map("serial_number") @db.VarChar(100)
+  manufacturer String?         @db.VarChar(100)
+  model        String?         @db.VarChar(100)
+  status       IncubatorStatus @default(AVAILABLE)
+  notes        String?         @db.Text
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("incubators")
 }

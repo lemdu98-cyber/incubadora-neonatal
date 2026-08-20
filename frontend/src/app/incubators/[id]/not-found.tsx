@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() { return <main className="grid min-h-screen place-items-center bg-slate-100 p-6"><section className="rounded-2xl border bg-white p-8 text-center"><h1 className="text-2xl font-bold">Incubadora no encontrada.</h1><Link className="mt-5 inline-flex font-semibold text-cyan-700" href="/incubators">Volver a incubadoras</Link></section></main>; }

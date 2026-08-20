@@ -31,3 +31,15 @@ export async function requireClinicalRole() {
   if (!context.user.roles.some((role) => ['ADMIN', 'DOCTOR', 'NURSE'].includes(role))) redirect('/dashboard');
   return context;
 }
+
+export async function requireIncubatorReader() {
+  const context = await requireAuthenticated();
+  if (!context.user.roles.some((role) => ['ADMIN', 'DOCTOR', 'NURSE', 'TECHNICIAN'].includes(role))) redirect('/dashboard');
+  return context;
+}
+
+export async function requireIncubatorCreator() {
+  const context = await requireAuthenticated();
+  if (!context.user.roles.some((role) => ['ADMIN', 'TECHNICIAN'].includes(role))) redirect('/incubators');
+  return context;
+}

@@ -1,0 +1,27 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { INCUBATOR_STATUSES, INCUBATOR_STATUS_LABELS } from "@/lib/incubator-options";
+import { ApiError } from "@/lib/api";
+import { IncubatorDetails } from "./[id]/page";
+import IncubatorNotFound from "./[id]/not-found";
+import { IncubatorForm } from "./incubator-form";
+import { canCreateIncubator, IncubatorEmpty, IncubatorError, IncubatorList } from "./page";
+
+const createIncubator = vi.fn(); const push = vi.fn(); const replace = vi.fn(); const signOut = vi.fn();
+vi.mock("@/lib/api", async (original) => ({ ...await original<typeof import("@/lib/api")>(), createIncubator: (...args: unknown[]) => createIncubator(...args) }));
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: "token" } } }), signOut } }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace, refresh: vi.fn() }), redirect: vi.fn(), notFound: vi.fn() }));
+
+const incubator = { id:"00000000-0000-4000-8000-000000000009", code:"INC-001", name:"Incubadora Neonatal 1", location:"UCIN - Sala 1", serialNumber:"SN-001", manufacturer:"Prototype Lab", model:"V2", status:"AVAILABLE" as const, notes:"Equipo principal", createdAt:"2026-08-20T00:00:00.000Z", updatedAt:"2026-08-20T00:00:00.000Z" };
+describe("Incubators UI", () => {
+  beforeEach(() => { vi.clearAllMocks(); createIncubator.mockResolvedValue(incubator); });
+  it("provides runtime statuses and labels", () => { expect(INCUBATOR_STATUSES).toHaveLength(4); expect(INCUBATOR_STATUS_LABELS.OUT_OF_SERVICE).toBe("Fuera de servicio"); });
+  it("renders list with status and detail action", () => { render(<IncubatorList incubators={[incubator]}/>); expect(screen.getAllByText("INC-001").length).toBeGreaterThan(0); expect(screen.getAllByText("Disponible").length).toBeGreaterThan(0); expect(screen.getAllByRole("link", { name:"Ver detalle" })[0]).toHaveAttribute("href", `/incubators/${incubator.id}`); });
+  it("renders empty and error states", () => { const { rerender } = render(<IncubatorEmpty canCreate/>); expect(screen.getByText("No hay incubadoras registradas.")).toBeInTheDocument(); expect(screen.getByRole("link", { name:"Registrar primera incubadora" })).toBeInTheDocument(); rerender(<IncubatorError/>); expect(screen.getByRole("alert")).toBeInTheDocument(); });
+  it.each([["ADMIN",true],["TECHNICIAN",true],["DOCTOR",false],["NURSE",false]])("applies create permission for %s", (role, allowed) => { expect(canCreateIncubator({ roles:[role] })).toBe(allowed); });
+  it("renders complete detail without future modules", () => { render(<IncubatorDetails incubator={incubator}/>); expect(screen.getByText("SN-001")).toBeInTheDocument(); expect(screen.getByText("Equipo principal")).toBeInTheDocument(); expect(screen.queryByText("Paciente actual")).not.toBeInTheDocument(); });
+  it("renders the 404 state", () => { render(<IncubatorNotFound/>); expect(screen.getByText("Incubadora no encontrada.")).toBeInTheDocument(); });
+  it("renders form without status and creates normalized input", async () => { render(<IncubatorForm/>); expect(screen.queryByLabelText("Estado")).not.toBeInTheDocument(); fireEvent.change(screen.getByLabelText("Código"), { target:{ value:" inc-001 " } }); fireEvent.change(screen.getByLabelText("Nombre"), { target:{ value:"Incubadora 1" } }); fireEvent.change(screen.getByLabelText("Ubicación"), { target:{ value:"UCIN" } }); fireEvent.click(screen.getByRole("button", { name:"Registrar incubadora" })); await waitFor(() => expect(createIncubator).toHaveBeenCalledWith(expect.objectContaining({ code:"INC-001", name:"Incubadora 1", location:"UCIN" }), "token")); expect(push).toHaveBeenCalledWith(`/incubators/${incubator.id}`); });
+  it("validates required fields", async () => { render(<IncubatorForm/>); const form = screen.getByRole("button", { name:"Registrar incubadora" }).closest("form")!; fireEvent.submit(form); expect(await screen.findByRole("alert")).toHaveTextContent("Revisa los datos"); expect(createIncubator).not.toHaveBeenCalled(); });
+  it("maps conflict to a safe message", async () => { createIncubator.mockRejectedValue(new ApiError(409)); render(<IncubatorForm/>); fireEvent.change(screen.getByLabelText("Código"), { target:{ value:"INC-001" } }); fireEvent.change(screen.getByLabelText("Nombre"), { target:{ value:"Incubadora 1" } }); fireEvent.change(screen.getByLabelText("Ubicación"), { target:{ value:"UCIN" } }); fireEvent.submit(screen.getByRole("button", { name:"Registrar incubadora" }).closest("form")!); expect(await screen.findByRole("alert")).toHaveTextContent("Ya existe una incubadora con ese código o número de serie."); });
+});

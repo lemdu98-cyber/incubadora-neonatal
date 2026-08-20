@@ -15,6 +15,7 @@
     "prisma:verify-identity": "ts-node prisma/verify-identity.ts",
     "prisma:verify-patients": "ts-node prisma/verify-patients.ts",
     "prisma:verify-guardians": "ts-node prisma/verify-guardians.ts",
+    "prisma:verify-incubators": "ts-node prisma/verify-incubators.ts",
     "bootstrap:admin": "ts-node src/users/scripts/bootstrap-admin.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"prisma/**/*.ts\"",
     "start": "nest start",

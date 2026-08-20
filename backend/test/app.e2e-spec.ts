@@ -13,6 +13,7 @@ import { ProfilesService } from './../src/profiles/profiles.service';
 import { UsersService } from './../src/users/users.service';
 import { PatientsService } from './../src/patients/patients.service';
 import { GuardiansService } from './../src/guardians/guardians.service';
+import { IncubatorsService } from './../src/incubators/incubators.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -24,6 +25,18 @@ describe('AppController (e2e)', () => {
   const nurseId = '00000000-0000-4000-8000-000000000006';
   const patientId = '00000000-0000-4000-8000-000000000007';
   const guardianId = '00000000-0000-4000-8000-000000000008';
+  const incubatorId = '00000000-0000-4000-8000-000000000009';
+  const incubator = {
+    id: incubatorId,
+    code: 'INC-001',
+    name: 'Incubadora Neonatal 1',
+    location: 'UCIN - Sala 1',
+    serialNumber: 'SN-001',
+    manufacturer: 'Prototype Lab',
+    model: 'V2',
+    status: 'AVAILABLE',
+    notes: null,
+  };
   const guardian = {
     id: guardianId,
     firstName: 'Maria',
@@ -170,6 +183,16 @@ describe('AppController (e2e)', () => {
           id === guardianId
             ? Promise.resolve({ status: 'ok' })
             : Promise.reject(new NotFoundException('Relationship not found')),
+        ),
+      })
+      .overrideProvider(IncubatorsService)
+      .useValue({
+        create: jest.fn().mockResolvedValue(incubator),
+        findAll: jest.fn().mockResolvedValue([incubator]),
+        findOne: jest.fn((id: string) =>
+          id === incubatorId
+            ? Promise.resolve(incubator)
+            : Promise.reject(new NotFoundException('Incubator not found')),
         ),
       })
       .compile();
@@ -443,6 +466,77 @@ describe('AppController (e2e)', () => {
       .set('Authorization', 'Bearer admin-token')
       .expect(200)
       .expect({ status: 'ok' }));
+
+  const incubatorInput = {
+    code: ' inc-001 ',
+    name: 'Incubadora Neonatal 1',
+    location: 'UCIN - Sala 1',
+    serialNumber: 'SN-001',
+    manufacturer: 'Prototype Lab',
+    model: 'V2',
+    notes: 'Pruebas',
+  };
+  it('POST /incubators requires JWT', () =>
+    request(app.getHttpServer())
+      .post('/incubators')
+      .send(incubatorInput)
+      .expect(401));
+  it.each(['doctor-token', 'nurse-token'])(
+    'POST /incubators rejects %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/incubators')
+        .set('Authorization', `Bearer ${token}`)
+        .send(incubatorInput)
+        .expect(403),
+  );
+  it.each(['admin-token', 'technician-token'])(
+    'POST /incubators allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/incubators')
+        .set('Authorization', `Bearer ${token}`)
+        .send(incubatorInput)
+        .expect(201)
+        .expect(incubator),
+  );
+  it('POST /incubators rejects invalid DTO', () =>
+    request(app.getHttpServer())
+      .post('/incubators')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ code: '', name: '', location: '' })
+      .expect(400));
+  it('POST /incubators rejects client status', () =>
+    request(app.getHttpServer())
+      .post('/incubators')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ ...incubatorInput, status: 'IN_USE' })
+      .expect(400));
+  it.each(['admin-token', 'doctor-token', 'nurse-token', 'technician-token'])(
+    'GET /incubators allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get('/incubators')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([incubator]),
+  );
+  it('GET /incubators/:id rejects invalid UUID', () =>
+    request(app.getHttpServer())
+      .get('/incubators/bad')
+      .set('Authorization', 'Bearer technician-token')
+      .expect(400));
+  it('GET /incubators/:id returns 404', () =>
+    request(app.getHttpServer())
+      .get('/incubators/00000000-0000-4000-8000-000000000099')
+      .set('Authorization', 'Bearer doctor-token')
+      .expect(404));
+  it('GET /incubators/:id returns incubator', () =>
+    request(app.getHttpServer())
+      .get(`/incubators/${incubatorId}`)
+      .set('Authorization', 'Bearer nurse-token')
+      .expect(200)
+      .expect(incubator));
 
   afterEach(async () => {
     await app.close();

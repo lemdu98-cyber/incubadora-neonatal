@@ -1,6 +1,6 @@
 # Base de datos
 
-Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad y pacientes están desplegados; la migración aditiva de tutores y relaciones paciente-tutor está versionada.
+Esta carpeta contiene el diseño revisable de PostgreSQL/Supabase. Identidad, pacientes, tutores, relaciones paciente–tutor e incubadoras están desplegados mediante migraciones aditivas versionadas.
 
 ## Conectividad implementada
 
@@ -16,7 +16,7 @@ El backend dispone de un cliente Prisma compartido y un `GET /health` que ejecut
 
 Los roles permanecen como tabla catálogo y se relacionan N:M con perfiles mediante `user_roles`, cuya PK es (`profile_id`, `role_id`). El seed idempotente fue ejecutado y existen `ADMIN`, `DOCTOR`, `NURSE` y `TECHNICIAN`.
 
-Supabase Auth todavía no está implementado: no hay login, validación JWT, guards, usuarios de aplicación ni creación automática de perfiles. Las tablas `profiles` y `user_roles` permanecen vacías hasta esa futura etapa.
+Supabase Auth, login, validación JWT mediante JWKS y guards de roles ya están implementados. Los perfiles y roles de aplicación se administran desde NestJS; el frontend nunca recibe una clave privilegiada de Supabase.
 
 PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` también tiene default de PostgreSQL y Prisma lo actualiza mediante `@updatedAt` cuando una escritura pasa por Prisma.
 
@@ -25,7 +25,7 @@ PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` tambié
 ## Contenido
 
 - [`schema.md`](./schema.md): modelo lógico propuesto, relaciones, restricciones e índices.
-- Las migraciones ejecutables y versionadas viven en `backend/prisma/migrations/`; la migración de pacientes crea sólo sus tres enums, tabla, checks e índices.
+- Las migraciones ejecutables y versionadas viven en `backend/prisma/migrations/`. La migración de incubadoras crea únicamente `incubator_status`, `incubators` y sus índices/constraints; no crea datos ni relaciona pacientes.
 
 ## Convenciones propuestas
 

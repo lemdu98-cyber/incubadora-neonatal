@@ -1,6 +1,6 @@
 # Modelo de datos propuesto
 
-> Estado: diseño general para revisión. `profiles`, `roles` y `user_roles` ya fueron desplegados mediante la primera migración Prisma y los cuatro roles base fueron sembrados. Supabase Auth todavía no está implementado y no existen perfiles automáticos. El resto del documento no es una migración ni crea recursos en Supabase. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
+> Estado: identidad, pacientes, tutores, relaciones paciente–tutor e inventario de incubadoras ya están desplegados mediante migraciones Prisma. Admissions, dispositivos, sensores, telemetría y alarmas siguen siendo diseño futuro. Los límites de alarma que se incorporen más adelante serán sólo configuración de demostración hasta contar con validación clínica formal.
 
 ## Criterios generales
 
@@ -20,7 +20,7 @@ Los siguientes valores son candidatos a enums PostgreSQL o restricciones `CHECK`
 | `profile_status` | `ACTIVE`, `INACTIVE`, `SUSPENDED` |
 | `patient_status` | `ACTIVE`, `INACTIVE` |
 | `patient_sex` | `MALE`, `FEMALE`, `UNSPECIFIED` |
-| `incubator_status` | `AVAILABLE`, `OCCUPIED`, `MAINTENANCE`, `INACTIVE` |
+| `incubator_status` | `AVAILABLE`, `IN_USE`, `MAINTENANCE`, `OUT_OF_SERVICE` |
 | `admission_status` | `ACTIVE`, `DISCHARGED`, `CANCELLED` |
 | `device_type` | `ESP32`, `ESP8266` |
 | `device_status` | `PROVISIONING`, `ONLINE`, `OFFLINE`, `MAINTENANCE`, `RETIRED` |
@@ -90,7 +90,7 @@ Se adopta la tabla puente en vez de `profiles.role_id`: soporta varios roles, ev
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
 
-`status` es exclusivamente administrativo y se limita inicialmente a `ACTIVE`/`INACTIVE` hasta implementar Admissions. No expresa salud, riesgo ni diagnóstico. Todavía no existe asociación con incubadoras o tutores.
+`status` es exclusivamente administrativo y se limita inicialmente a `ACTIVE`/`INACTIVE` hasta implementar Admissions. No expresa salud, riesgo ni diagnóstico. Los tutores se relacionan mediante `patient_guardians`; todavía no existe asociación con incubadoras.
 
 ### `guardians`
 
@@ -127,10 +127,16 @@ PK compuesta (`patient_id`, `guardian_id`). Paciente usa `ON DELETE CASCADE`; tu
 | `id` | `uuid` | PK; default UUID |
 | `code` | `varchar(50)` | UNIQUE; identificador operativo inmutable |
 | `name` | `varchar(120)` | no vacío |
-| `location` | `varchar(200)` | nullable |
+| `location` | `varchar(150)` | no vacío |
+| `serial_number` | `varchar(100)` | nullable; UNIQUE cuando existe |
+| `manufacturer` | `varchar(100)` | nullable |
+| `model` | `varchar(100)` | nullable |
 | `status` | `incubator_status` | default `AVAILABLE` |
+| `notes` | `text` | nullable; observaciones técnicas, no clínicas |
 | `created_at` | `timestamptz` | default `now()` |
 | `updated_at` | `timestamptz` | default `now()` |
+
+`code` se normaliza a mayúsculas en NestJS. Hay índices por estado y fecha de creación descendente. `IN_USE` es por ahora un estado administrativo manual del modelo: no se deriva de pacientes y no se expone ninguna operación para cambiarlo hasta implementar Admissions. No existe control físico, dispositivo, sensor ni telemetría asociado en esta etapa.
 
 ### `admissions`
 
