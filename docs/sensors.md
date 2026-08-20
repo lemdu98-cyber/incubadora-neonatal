@@ -14,4 +14,4 @@ No se modela una única unidad porque un mismo sensor puede producir varias magn
 
 Todos los roles autenticados pueden consultar. Sólo `ADMIN` y `TECHNICIAN` pueden registrar sensores y ven la navegación principal; DOCTOR/NURSE acceden desde Device. Incubator no carga directamente todos sus sensores para evitar duplicar una jerarquía potencialmente pesada.
 
-El detalle permite consultar capacidades y ADMIN/TECHNICIAN pueden asignarlas o retirarlas; las recomendaciones por tipo requieren siempre acción explícita. No hay calibración funcional, MQTT, telemetría, heartbeat, alarmas ni control físico. Código y canal no son credenciales.
+El detalle permite consultar capacidades y ADMIN/TECHNICIAN pueden asignarlas o retirarlas. Telemetry existe como almacenamiento/API sin vista en vivo; no hay MQTT, polling, gráficas, heartbeat, alarmas ni control físico.

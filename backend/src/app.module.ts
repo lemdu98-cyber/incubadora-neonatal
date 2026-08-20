@@ -15,6 +15,7 @@ import { AdmissionsModule } from './admissions/admissions.module';
 import { DevicesModule } from './devices/devices.module';
 import { SensorsModule } from './sensors/sensors.module';
 import { MeasurementsModule } from './measurements/measurements.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { MeasurementsModule } from './measurements/measurements.module';
     DevicesModule,
     SensorsModule,
     MeasurementsModule,
+    TelemetryModule,
     DatabaseModule,
     HealthModule,
     GuardiansModule,

@@ -20,6 +20,7 @@
     "prisma:verify-devices": "ts-node prisma/verify-devices.ts",
     "prisma:verify-sensors": "ts-node prisma/verify-sensors.ts",
     "prisma:verify-measurements": "ts-node prisma/verify-measurements.ts",
+    "prisma:verify-telemetry": "ts-node prisma/verify-telemetry.ts",
     "bootstrap:admin": "ts-node src/users/scripts/bootstrap-admin.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"prisma/**/*.ts\"",
     "start": "nest start",

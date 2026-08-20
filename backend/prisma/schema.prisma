@@ -126,6 +126,14 @@ enum MeasurementCategory {
   @@map("measurement_category")
 }
 
+enum TelemetryQuality {
+  GOOD
+  SUSPECT
+  INVALID
+
+  @@map("telemetry_quality")
+}
+
 model Profile {
   id        String        @id @db.Uuid
   firstName String        @map("first_name") @db.VarChar(100)
@@ -229,6 +237,7 @@ model Incubator {
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   admissions   Admission[]
   devices      Device[]
+  telemetry    Telemetry[]
 
   @@index([status])
   @@index([createdAt(sort: Desc)])
@@ -249,6 +258,7 @@ model Device {
   updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   incubator       Incubator    @relation(fields: [incubatorId], references: [id], onDelete: Restrict)
   sensors         Sensor[]
+  telemetry       Telemetry[]
 
   @@index([incubatorId])
   @@index([status])
@@ -269,6 +279,7 @@ model Sensor {
   updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   device              Device             @relation(fields: [deviceId], references: [id], onDelete: Restrict)
   capabilities        SensorCapability[]
+  telemetry           Telemetry[]
 
   @@index([deviceId])
   @@index([sensorType])
@@ -289,6 +300,7 @@ model MeasurementDefinition {
   createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   capabilities  SensorCapability[]
+  telemetry     Telemetry[]
 
   @@index([category])
   @@index([createdAt(sort: Desc)])
@@ -319,10 +331,40 @@ model Admission {
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   patient      Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
   incubator    Incubator       @relation(fields: [incubatorId], references: [id], onDelete: Restrict)
+  telemetry    Telemetry[]
 
   @@index([patientId, admittedAt(sort: Desc)])
   @@index([incubatorId, admittedAt(sort: Desc)])
   @@index([status])
   @@index([admittedAt(sort: Desc)])
   @@map("admissions")
+}
+
+model Telemetry {
+  id                      BigInt                @id @default(autoincrement())
+  deviceId                String                @map("device_id") @db.Uuid
+  sensorId                String                @map("sensor_id") @db.Uuid
+  measurementDefinitionId String                @map("measurement_definition_id") @db.Uuid
+  incubatorId             String                @map("incubator_id") @db.Uuid
+  admissionId             String?               @map("admission_id") @db.Uuid
+  value                   Float                 @db.DoublePrecision
+  measuredAt              DateTime              @map("measured_at") @db.Timestamptz(6)
+  receivedAt              DateTime              @default(now()) @map("received_at") @db.Timestamptz(6)
+  sequence                BigInt
+  bootId                  String                @map("boot_id") @db.Uuid
+  quality                 TelemetryQuality      @default(GOOD)
+  device                  Device                @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  sensor                  Sensor                @relation(fields: [sensorId], references: [id], onDelete: Restrict)
+  measurementDefinition   MeasurementDefinition @relation(fields: [measurementDefinitionId], references: [id], onDelete: Restrict)
+  incubator               Incubator             @relation(fields: [incubatorId], references: [id], onDelete: Restrict)
+  admission               Admission?            @relation(fields: [admissionId], references: [id], onDelete: Restrict)
+
+  @@unique([deviceId, bootId, sequence, sensorId, measurementDefinitionId])
+  @@index([sensorId, measuredAt(sort: Desc)])
+  @@index([deviceId, measuredAt(sort: Desc)])
+  @@index([incubatorId, measuredAt(sort: Desc)])
+  @@index([admissionId, measuredAt(sort: Desc)])
+  @@index([measurementDefinitionId, measuredAt(sort: Desc)])
+  @@index([sensorId, measurementDefinitionId, measuredAt(sort: Desc)])
+  @@map("telemetry")
 }

@@ -6,4 +6,4 @@
 
 El catálogo base contiene `AIR_TEMPERATURE`, `RELATIVE_HUMIDITY`, `HEART_RATE`, `SPO2` y `BODY_TEMPERATURE`. Se mantiene mediante upsert idempotente. Todos los roles pueden consultarlo y consultar capacidades; sólo ADMIN/TECHNICIAN pueden asignar o desvincular.
 
-Cuando exista Telemetry, deberá preservar el contexto histórico y podría restringir cambios de capacidades ya utilizadas. Esa política no se implementa todavía.
+Telemetry ya referencia MeasurementDefinition y SensorCapability valida la ingestión. Una evolución deberá restringir cambios históricos de capacidades ya utilizadas.

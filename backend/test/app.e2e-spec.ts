@@ -18,6 +18,8 @@ import { AdmissionsService } from './../src/admissions/admissions.service';
 import { DevicesService } from './../src/devices/devices.service';
 import { SensorsService } from './../src/sensors/sensors.service';
 import { MeasurementsService } from './../src/measurements/measurements.service';
+import { TelemetryIngestionService } from './../src/telemetry/telemetry-ingestion.service';
+import { TelemetryService } from './../src/telemetry/telemetry.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -117,6 +119,21 @@ describe('AppController (e2e)', () => {
     category: 'ENVIRONMENTAL',
     description: null,
     decimalPlaces: 1,
+  };
+  const telemetryRow = {
+    id: '1',
+    deviceId,
+    sensorId,
+    measurementDefinitionId,
+    incubatorId,
+    admissionId,
+    value: 36.7,
+    measuredAt: '2026-08-20T20:15:30.123Z',
+    receivedAt: '2026-08-20T20:15:31.000Z',
+    sequence: '1',
+    bootId: '00000000-0000-4000-8000-000000000020',
+    quality: 'GOOD',
+    measurementDefinition,
   };
   const admission = {
     id: admissionId,
@@ -333,6 +350,14 @@ describe('AppController (e2e)', () => {
           measurementDefinition,
         }),
         remove: jest.fn().mockResolvedValue({ status: 'removed' }),
+      })
+      .overrideProvider(TelemetryIngestionService)
+      .useValue({ ingest: jest.fn().mockResolvedValue(telemetryRow) })
+      .overrideProvider(TelemetryService)
+      .useValue({
+        findAll: jest.fn().mockResolvedValue([telemetryRow]),
+        findForSensor: jest.fn().mockResolvedValue([telemetryRow]),
+        findForAdmission: jest.fn().mockResolvedValue([telemetryRow]),
       })
       .compile();
 
@@ -985,6 +1010,81 @@ describe('AppController (e2e)', () => {
         .expect(200)
         .expect({ status: 'removed' }),
   );
+
+  const telemetryInput = {
+    schemaVersion: 1,
+    deviceHardwareUid: device.hardwareUid,
+    sensorCode: sensor.code,
+    measurementCode: measurementDefinition.code,
+    value: 36.7,
+    measuredAt: '2026-08-20T20:15:30.123Z',
+    sequence: 1,
+    bootId: '00000000-0000-4000-8000-000000000020',
+  };
+  it('POST telemetry ingest requires JWT', () =>
+    request(app.getHttpServer())
+      .post('/telemetry/ingest')
+      .send(telemetryInput)
+      .expect(401));
+  it.each(['doctor-token', 'nurse-token'])(
+    'POST telemetry ingest rejects %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/telemetry/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send(telemetryInput)
+        .expect(403),
+  );
+  it.each(['admin-token', 'technician-token'])(
+    'POST telemetry ingest allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .post('/telemetry/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send(telemetryInput)
+        .expect(201)
+        .expect(telemetryRow),
+  );
+  it('POST telemetry ingest validates payload', () =>
+    request(app.getHttpServer())
+      .post('/telemetry/ingest')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ ...telemetryInput, sequence: -1 })
+      .expect(400));
+  it.each(['admin-token', 'doctor-token', 'nurse-token', 'technician-token'])(
+    'GET telemetry allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get('/telemetry?limit=10')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([telemetryRow]),
+  );
+  it('GET telemetry enforces maximum limit', () =>
+    request(app.getHttpServer())
+      .get('/telemetry?limit=1001')
+      .set('Authorization', 'Bearer admin-token')
+      .expect(400));
+  it('GET sensor telemetry', () =>
+    request(app.getHttpServer())
+      .get(`/sensors/${sensorId}/telemetry?limit=20`)
+      .set('Authorization', 'Bearer technician-token')
+      .expect(200)
+      .expect([telemetryRow]));
+  it.each(['admin-token', 'doctor-token', 'nurse-token'])(
+    'GET admission telemetry allows %s',
+    (token) =>
+      request(app.getHttpServer())
+        .get(`/admissions/${admissionId}/telemetry`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .expect([telemetryRow]),
+  );
+  it('GET admission telemetry rejects technician', () =>
+    request(app.getHttpServer())
+      .get(`/admissions/${admissionId}/telemetry`)
+      .set('Authorization', 'Bearer technician-token')
+      .expect(403));
 
   afterEach(async () => {
     await app.close();

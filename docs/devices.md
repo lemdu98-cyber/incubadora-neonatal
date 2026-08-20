@@ -12,4 +12,4 @@ Al crear, backend normaliza `hardwareUid` y `code` a mayúsculas, fuerza `ACTIVE
 
 ## Límites actuales
 
-No hay edición ni eliminación. El detalle de Device muestra sus Sensors; las magnitudes se definen mediante el catálogo y SensorCapability. Todavía no existen MQTT, telemetría, heartbeat automático, alarmas, comandos ni control físico. `ACTIVE` expresa sólo inventario administrativo y “Sin comunicación registrada” no equivale a estado offline.
+No hay edición ni eliminación. Telemetry conserva Device e incubadora como contexto histórico, pero no modifica `lastSeenAt`. Todavía no existen MQTT, heartbeat automático, alarmas, comandos ni control físico.
