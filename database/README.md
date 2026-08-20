@@ -32,6 +32,8 @@ PostgreSQL genera `created_at` y `assigned_at` con `now()`. `updated_at` tambié
 - La migración de Measurements crea los enums, `measurement_definitions`, `sensor_capabilities`, checks, índices y FKs restrictivas. El seed idempotente administra sólo el catálogo base y no asigna sensores reales.
 - La migración de Telemetry crea `telemetry_quality` y `telemetry` con PK BIGINT identity, contexto histórico, idempotencia por arranque, índices y FKs restrictivas. No inserta lecturas.
 
+MQTT/EMQX no modifica el esquema: NestJS valida topic/payload y reutiliza `TelemetryIngestionService`. Las credenciales permanecen en EMQX y variables de entorno, nunca en Device.
+
 ## Convenciones propuestas
 
 - `uuid` para identidades de dominio y claves expuestas por API.

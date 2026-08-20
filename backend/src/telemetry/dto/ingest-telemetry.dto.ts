@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -14,6 +15,6 @@ export class IngestTelemetryDto {
   @IsString() @MaxLength(60) measurementCode!: string;
   @IsNumber({ allowInfinity: false, allowNaN: false }) value!: number;
   @IsDateString({ strict: true }) measuredAt!: string;
-  @IsInt() @Min(0) sequence!: number;
+  @IsInt() @Min(0) @Max(Number.MAX_SAFE_INTEGER) sequence!: number;
   @IsUUID('4') bootId!: string;
 }

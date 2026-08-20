@@ -16,6 +16,7 @@ import { DevicesModule } from './devices/devices.module';
 import { SensorsModule } from './sensors/sensors.module';
 import { MeasurementsModule } from './measurements/measurements.module';
 import { TelemetryModule } from './telemetry/telemetry.module';
+import { MqttModule } from './mqtt/mqtt.module';
 
 @Module({
   imports: [
@@ -33,6 +34,38 @@ import { TelemetryModule } from './telemetry/telemetry.module';
         SUPABASE_URL: Joi.string().uri().required(),
         SUPABASE_PUBLISHABLE_KEY: Joi.string().required(),
         SUPABASE_SECRET_KEY: Joi.string().required(),
+        MQTT_ENABLED: Joi.boolean()
+          .truthy('true')
+          .falsy('false')
+          .default(false),
+        MQTT_BROKER_URL: Joi.string()
+          .uri({ scheme: ['mqtt', 'mqtts', 'ws', 'wss'] })
+          .default('mqtt://localhost:1883'),
+        MQTT_CLIENT_ID: Joi.string()
+          .min(1)
+          .max(128)
+          .default('incubadora-backend-dev'),
+        MQTT_USERNAME: Joi.string()
+          .allow('')
+          .default('')
+          .when('MQTT_ENABLED', {
+            is: true,
+            then: Joi.string().min(1).required(),
+          }),
+        MQTT_PASSWORD: Joi.string()
+          .allow('')
+          .default('')
+          .when('MQTT_ENABLED', {
+            is: true,
+            then: Joi.string().min(1).required(),
+          }),
+        MQTT_TELEMETRY_TOPIC: Joi.string()
+          .pattern(/^[^#]*\+[^#]*\/telemetry$/)
+          .default('incubadora/devices/+/telemetry'),
+        MQTT_HEARTBEAT_TOPIC: Joi.string()
+          .pattern(/^[^#]*\+[^#]*\/heartbeat$/)
+          .default('incubadora/devices/+/heartbeat'),
+        MQTT_QOS: Joi.number().valid(0, 1).default(1),
       }),
       validationOptions: {
         abortEarly: false,
@@ -44,6 +77,7 @@ import { TelemetryModule } from './telemetry/telemetry.module';
     SensorsModule,
     MeasurementsModule,
     TelemetryModule,
+    MqttModule,
     DatabaseModule,
     HealthModule,
     GuardiansModule,

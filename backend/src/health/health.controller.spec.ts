@@ -2,6 +2,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../database/prisma.service';
 import { HealthController } from './health.controller';
+import { MqttService } from '../mqtt/mqtt.service';
 
 describe('HealthController', () => {
   let controller: HealthController;
@@ -14,7 +15,10 @@ describe('HealthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
-      providers: [{ provide: PrismaService, useValue: prismaService }],
+      providers: [
+        { provide: PrismaService, useValue: prismaService },
+        { provide: MqttService, useValue: { status: () => 'disabled' } },
+      ],
     }).compile();
 
     controller = module.get(HealthController);
@@ -26,6 +30,7 @@ describe('HealthController', () => {
     await expect(controller.check()).resolves.toEqual({
       status: 'ok',
       database: 'connected',
+      mqtt: 'disabled',
     });
   });
 
@@ -43,6 +48,7 @@ describe('HealthController', () => {
       expect((error as HttpException).getResponse()).toEqual({
         status: 'error',
         database: 'unavailable',
+        mqtt: 'disabled',
       });
     }
   });

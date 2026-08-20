@@ -12,4 +12,4 @@ Al crear, backend normaliza `hardwareUid` y `code` a mayúsculas, fuerza `ACTIVE
 
 ## Límites actuales
 
-No hay edición ni eliminación. Telemetry conserva Device e incubadora como contexto histórico, pero no modifica `lastSeenAt`. Todavía no existen MQTT, heartbeat automático, alarmas, comandos ni control físico.
+No hay edición ni eliminación. MQTT válido actualiza `lastSeenAt` con throttling de 15 segundos; esto no equivale a ONLINE. Todavía no existen alarmas, comandos ni control físico.

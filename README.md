@@ -14,7 +14,7 @@ Sensores -> ESP32/ESP8266 -> EMQX -> NestJS -> PostgreSQL/Supabase -> Next.js
 
 - Frontend: Next.js, React, TypeScript, App Router y Tailwind CSS.
 - Backend: NestJS, TypeScript y API REST.
-- Futuras integraciones: PostgreSQL, Supabase Auth, MQTT y EMQX.
+- Integraciones: PostgreSQL/Supabase, Supabase Auth y adaptador MQTT para EMQX.
 - Firmware: Arduino IDE/C++ para ESP32 y ESP8266.
 
 ## Estructura
@@ -29,9 +29,11 @@ Sensores -> ESP32/ESP8266 -> EMQX -> NestJS -> PostgreSQL/Supabase -> Next.js
 └── docs/      # Documentación técnica
 ```
 
-## Estado inicial
+## Estado actual
 
-La base de NestJS y Next.js está inicializada con configuración estricta, lint y builds independientes. Todavía no se implementaron autenticación, base de datos, pacientes, MQTT, sensores ni alarmas.
+El sistema incluye identidad, módulos clínicos/técnicos, Telemetry normalizada y consumo MQTT opcional. Todavía no existen tiempo real web, Alarm Rules, Alarm Engine ni firmware completo.
+
+EMQX local y su provisionamiento seguro se documentan en `docs/mqtt.md` y `docs/mqtt-security.md`. MQTT permanece deshabilitado por defecto.
 
 ## Desarrollo local
 
@@ -48,4 +50,3 @@ cd frontend
 npm install
 npm run dev
 ```
-
