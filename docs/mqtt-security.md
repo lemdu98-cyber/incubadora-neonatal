@@ -14,6 +14,7 @@ Para el Device `ABC123`, la autorización EMQX debe permitir únicamente:
 ```text
 PUB incubadora/devices/ABC123/telemetry
 PUB incubadora/devices/ABC123/heartbeat
+PUB incubadora/devices/ABC123/status
 ```
 
 Debe denegar otros PUB y cualquier SUB. El backend sólo recibe SUB sobre los dos patrones con `+` y no necesita PUB. La asociación credencial→Device se materializa en la ACL específica creada durante el provisionamiento manual: crear Device en la aplicación, crear credencial única en EMQX, aplicar ACL a su hardware UID y grabarla en el ESP.

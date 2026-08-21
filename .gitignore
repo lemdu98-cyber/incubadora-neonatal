@@ -30,3 +30,6 @@ Thumbs.db
 
 # Platform-specific
 .vercel/
+
+# Device-local firmware credentials and deployment CA configuration
+firmware/**/secrets.h

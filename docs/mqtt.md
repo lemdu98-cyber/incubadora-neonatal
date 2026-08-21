@@ -20,6 +20,7 @@ ESP32 / ESP8266
 
 - `incubadora/devices/{hardwareUid}/telemetry`: QoS 1, nunca retained.
 - `incubadora/devices/{hardwareUid}/heartbeat`: QoS 0, nunca retained.
+- `incubadora/devices/{hardwareUid}/status`: LWT auxiliar QoS 1 retained (`online`/`offline`); NestJS no se suscribe ni persiste este estado.
 
 El backend se suscribe únicamente a `incubadora/devices/+/telemetry` y `incubadora/devices/+/heartbeat`. El topic sólo contiene identidad técnica. El hardware UID extraído debe coincidir exactamente con el payload; después se reutiliza `TelemetryIngestionService`.
 
@@ -27,7 +28,7 @@ Heartbeat recomendado cada 30 segundos. Un heartbeat o telemetría válidos actu
 
 `MQTT_ENABLED=false` mantiene MQTT totalmente desactivado. Cuando está activo, MQTT.js reconecta cada cinco segundos y vuelve a suscribir en `connect`. Una indisponibilidad del broker no impide iniciar NestJS; `/health` informa `connected`, `disconnected` o `disabled` sin revelar configuración.
 
-El endpoint JWT `/telemetry/ingest` permanece como herramienta de desarrollo y queda deprecado para dispositivos cuando MQTT esté activo. No hay ACK aplicativo, LWT, shared subscriptions, comandos ni publicación desde backend. Una futura escala horizontal deberá usar shared subscriptions.
+El endpoint JWT `/telemetry/ingest` permanece como herramienta de desarrollo y queda deprecado para dispositivos cuando MQTT esté activo. No hay ACK aplicativo, shared subscriptions, comandos ni publicación desde backend. El LWT es sólo una señal operativa del broker: `lastSeenAt` continúa siendo la fuente principal. Una futura escala horizontal deberá usar shared subscriptions.
 
 ## EMQX local
 
